@@ -8,8 +8,13 @@ assembly:
 	i586-elf-as boot.s -o boot.o
 
 kernel:
+	if [[ -e "objs.txt" ]]; then rm objs.txt; fi;
 	i586-elf-gcc -c main.c -o kernel.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
-	cd display && make
+	echo -n "boot.o kernel.o " >> objs.txt
+	cd display && $(MAKE) $(MFLAGS)
+	cd lib && $(MAKE) $(MFLAGS)
 
+objs = `cat objs.txt`
 link:
-	i586-elf-gcc -T linker.ld -o levos.bin -ffreestanding -O2 -nostdlib boot.o kernel.o display/display.o display/textmode/dispi_textmode.o  -lgcc
+	i586-elf-gcc -T linker.ld -o levos.bin -ffreestanding -O2 -nostdlib $(objs)  -lgcc
+	rm objs.txt

@@ -22,4 +22,6 @@ extern uint8_t display_register(DISPLAY d);
 extern uint8_t display_setcurrent(uint8_t id);
 extern DISPLAY* display_getcurrent();
 
+extern int kprintf (const char* str, ...);
+
 #endif

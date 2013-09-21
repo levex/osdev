@@ -6,6 +6,6 @@
 
 typedef char* string;
 
-extern size_t strlen(string str);
+extern size_t strlen(const string str);
 
 #endif
