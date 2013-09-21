@@ -13,8 +13,12 @@ kernel:
 	echo -n "boot.o kernel.o " >> objs.txt
 	cd display && $(MAKE) $(MFLAGS)
 	cd lib && $(MAKE) $(MFLAGS)
+	cd memory && $(MAKE) $(MFLAGS)
 
 objs = `cat objs.txt`
 link:
 	i586-elf-gcc -T linker.ld -o levos.bin -ffreestanding -O2 -nostdlib $(objs)  -lgcc
+	rm objs.txt
+
+clean:
 	rm objs.txt

@@ -1,3 +1,5 @@
+/** @author Levente Kurusa <levex@linux.com> **/
+
 #if !defined(__cplusplus)
 #include <stdbool.h> /* C-ben alapbol nincsenek is bool-ok. */
 #endif
@@ -19,6 +21,10 @@ void kernel_main()
 	display_setcurrent(display_register(textmode_init()));
 	disp = display_getcurrent();
 	disp->puts("Hello, world! I am a kernel developer, \nand I think that newlines do work! Not sure, but hey!\n");
-	kprintf("Testing printf\n%s %s\n%c %s\n%d %s\n0x%x %s", "it does work!", "<--- a string", 'D', "<-- a character", 1337, " <- a decimal value", 1337, " <-- hexadecimal value");
+	kprintf("Testing printf\n%s %s\n%c %s\n%d %s\n0x%x %s",
+		 "it does work!", "<--- a string", 
+		 'D', "<-- a character",
+		 1337, " <- a decimal value",
+		 1337, " <-- hexadecimal value");
 
 }

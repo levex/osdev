@@ -1,3 +1,4 @@
+/** @author Levente Kurusa <levex@linux.com> **/
 #include "../include/string.h"
 #include <stddef.h>
 #include <stdint.h>

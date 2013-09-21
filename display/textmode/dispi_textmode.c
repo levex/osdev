@@ -1,6 +1,8 @@
+/** @author Levente Kurusa <levex@linux.com> **/
 #include "../../include/display.h"
 #include "dispi_textmode.h"
 #include "../../include/string.h"
+#include "../../include/memory.h"
 
 static DISPLAY d = {0}; // we don't have a mm yet, must reserve static BSS space for it.
 
@@ -14,6 +16,11 @@ inline uint16_t __textmode_create_entry(char c, uint8_t color)
 	uint16_t _char = (uint16_t)c;
 	uint16_t _color = (uint16_t)color;
 	return _char | _color << 8;
+}
+
+inline void __textmode_scrollup()
+{
+
 }
 
 void __textmode_onregister()
