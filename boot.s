@@ -21,6 +21,34 @@ stack_top:
 
 # az elf-ben a .text szekcio tartalmazza a kodot amit futtatni fogunk
 .section .text
+.global _set_gdtr
+.type _set_gdtr, @function
+_set_gdtr:
+	push %ebp
+	movl %esp, %ebp
+
+	lgdt 0x400000
+	movl %ebp, %esp
+	pop %ebp
+	ret
+
+.global _reload_segments
+.type _reload_segments, @function
+_reload_segments:
+	push %ebp
+	movl %esp, %ebp
+
+	mov 0x10, %ds
+	mov 0x10, %es
+	mov 0x10, %fs
+	mov 0x10, %gs
+
+	ljmp $0x8, $me
+me:
+	movl %ebp, %esp
+	pop %ebp
+	ret
+
 .global _start # ez exportalja a _start label-t
 .type _start, @function # a _start label mostmar egy funkcio!
 _start: # definialjuk a _start -ot
@@ -34,6 +62,7 @@ _start: # definialjuk a _start -ot
 	# az elozo ket sor, orokre lefagyasztja a gepet, innen marcsak a reboot segit!
 .Lhang:  # ha GPF vagy PF lenne, akkor sem hagyjuk a gepet elfutni a rossz memoriaba!
 	jmp .Lhang # inkabb ugraljon orokre itt (~spinlock)
+
 
 .size _start, . - _start
 

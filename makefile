@@ -14,6 +14,7 @@ kernel:
 	cd display && $(MAKE) $(MFLAGS)
 	cd lib && $(MAKE) $(MFLAGS)
 	cd memory && $(MAKE) $(MFLAGS)
+	cd arch && $(MAKE) $(MFLAGS)
 
 objs = `cat objs.txt`
 link:
