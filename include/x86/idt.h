@@ -20,7 +20,7 @@ typedef struct {
 	asm volatile("iret");
 
 extern void idt_init();
-extern void idt_register_interrupt(uint8_t i, void(*callback)());
+extern void idt_register_interrupt(uint8_t i, uint32_t addr);
 extern void add_idt_descriptor(uint8_t id, idt_descriptor desc);
 
 #endif

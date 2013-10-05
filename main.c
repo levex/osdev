@@ -11,6 +11,9 @@
 #include "display/textmode/dispi_textmode.h"
 #include "include/x86/gdt.h"
 #include "include/x86/idt.h"
+#include "include/pit.h"
+#include "include/pic.h"
+#include "include/hal.h"
 
 static DISPLAY* disp = 0;
 
@@ -35,8 +38,14 @@ void kernel_main()
 	/* Now, we have the GDT setup, let's load the IDT as well */
 	idt_init();
 	/* Next step, setup PIT. */
+	hal_init();
+	pic_init();
+	pit_init();
+	/* Enabling interrupts early... */
+	asm volatile("sti");
+	mprint("Interrupts were enabled, beware.\n");
 	/* Setup memory manager */
 	/* Setup paging. */
-	/* Enable interrupts and tasking. */
+	/* Enable tasking. */
 	panic("Reached end of main(), but no init was started.");
 }

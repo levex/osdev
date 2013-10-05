@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include "../include/x86/idt.h"
 #include "../include/display.h"
+#include "../include/hal.h"
 
 MODULE("IDT");
 
@@ -23,9 +24,9 @@ void idt_init()
 	mprint("IDTR location: 0x%x\n", idtr_location);
 	for(uint8_t i = 0; i < 255; i++)
 	{
-		idt_register_interrupt(i, __idt_default_handler);
+		idt_register_interrupt(i, (uint32_t)&__idt_default_handler);
 	}
-	idt_register_interrupt(0x2f, __idt_test_handler);
+	idt_register_interrupt(0x2f, (uint32_t)&__idt_test_handler);
 	mprint("Registered all interrupts to default handler.\n");
 	/* create IDTR now */
 	*(uint16_t*)idtr_location = idt_size - 1;
@@ -34,12 +35,12 @@ void idt_init()
 	_set_idtr();
 	mprint("IDTR set, testing link.\n");
 	asm volatile("int $0x2f");
-	while(test_timeout != 0)
+	while(test_timeout-- != 0)
 	{
 		if(test_success != 0)
 		{
 			mprint("Test succeeded, disabling INT#0x2F\n");
-			idt_register_interrupt(0x2F, __idt_default_handler);
+			idt_register_interrupt(0x2F, (uint32_t)&__idt_default_handler);
 			break;
 		}
 	}
@@ -57,17 +58,20 @@ void __idt_test_handler()
 
 void __idt_default_handler()
 {
+	IRQ_START;
 	panic("Unhandled interrupt!\n");
+	//send_eoi(16);
+	IRQ_END;
 }
 
-void idt_register_interrupt(uint8_t i, void(*callback)())
+void idt_register_interrupt(uint8_t i, uint32_t callback)
 {
 	idt_descriptor desc = {0};
-	desc.offset_0_15 = (uint16_t)callback;
+	desc.offset_0_15 = (uint16_t)(callback & 0x0000ffff);
 	desc.selector = 0x8;
 	desc.zero = 0;
-	desc.type_attr = 0 | IDT_32BIT_INTERRUPT_GATE | IDT_DPL_3 | IDT_PRESENT;
-	desc.offset_16_31 = (uint16_t)((uint32_t)callback >> 16);
+	desc.type_attr = 0 | IDT_32BIT_INTERRUPT_GATE | IDT_PRESENT;
+	desc.offset_16_31 = (uint16_t)(callback >> 16);
 	/*mprint("Descriptor: id%d offset 0x%x, orig 0x%x\n", 
 		i,
 		desc.offset_16_31 << 16 | desc.offset_0_15,
@@ -82,5 +86,6 @@ void add_idt_descriptor(uint8_t id, idt_descriptor desc)
 	*(uint8_t*) (idt_location + sizeof(idt_descriptor)*id + 4) = desc.zero;
 	*(uint8_t*) (idt_location + sizeof(idt_descriptor)*id + 5) = desc.type_attr;
 	*(uint16_t*)(idt_location + sizeof(idt_descriptor)*id + 6) = desc.offset_16_31;
+	if(test_success) mprint("Registered INT#%d\n", id);
 	return;
 }

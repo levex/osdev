@@ -1,5 +1,5 @@
-compile: assembly kernel link
-all: assembly kernel link start
+compile: assembly bkernel link
+all: assembly bkernel link start
 
 start:
 	qemu -kernel levos.bin
@@ -7,7 +7,7 @@ start:
 assembly:
 	i586-elf-as boot.s -o boot.o
 
-kernel:
+bkernel:
 	if [[ -e "objs.txt" ]]; then rm objs.txt; fi;
 	i586-elf-gcc -c main.c -o kernel.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
 	echo -n "boot.o kernel.o " >> objs.txt
@@ -15,6 +15,7 @@ kernel:
 	cd lib && $(MAKE) $(MFLAGS)
 	cd memory && $(MAKE) $(MFLAGS)
 	cd arch && $(MAKE) $(MFLAGS)
+	cd kernel && $(MAKE) $(MFLAGS)
 
 objs = `cat objs.txt`
 link:
