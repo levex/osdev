@@ -18,9 +18,15 @@ inline uint16_t __textmode_create_entry(char c, uint8_t color)
 	return _char | _color << 8;
 }
 
-inline void __textmode_scrollup()
+static inline void __textmode_scrollup()
 {
-
+	uint16_t nullentry = __textmode_create_entry(' ', __textmode_make_color(d.con.fgcol, d.con.bgcol));
+	for(int y = 0; y < TEXTMODE_HEIGHT; y++)
+	{
+		memcpy(VGA_MEMORY + y*TEXTMODE_WIDTH*2 ,
+			VGA_MEMORY + (y+1)*TEXTMODE_WIDTH*2,
+			TEXTMODE_WIDTH*2);
+	}
 }
 
 void __textmode_onregister()
@@ -84,6 +90,11 @@ void textmode_putc(char c)
 	{
 		d.con.cx = 0;
 		d.con.cy ++;
+	}
+	if(d.con.cy >= TEXTMODE_HEIGHT-1)
+	{
+		__textmode_scrollup();
+		d.con.cy --;
 	}
 	/* list of special characters */
 	if(c == '\n' || c == 0) return;

@@ -5,5 +5,6 @@
 #include <stddef.h>
 extern void* memcpy(const void* dest, const void* src, size_t num );
 extern void* memset (void * ptr, int value, size_t num );
+extern void* memset16 (void *ptr, uint16_t value, size_t num);
 
 #endif

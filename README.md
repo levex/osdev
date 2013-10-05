@@ -9,6 +9,7 @@ Latest commits supports:
 - Textmode printf()
 - panic()
 - semi-modules and mprint()
-- GDT (WIP)
+- GDT
+- IDT
 - Minecraft as well
 

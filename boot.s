@@ -16,7 +16,7 @@
 # foglalunk a stack-nek 16KiB-ot
 .section .bootstrap_stack
 stack_bottom:
-.skip 16384 # 16 KiB
+.skip 32768 # 16 KiB
 stack_top:
 
 # az elf-ben a .text szekcio tartalmazza a kodot amit futtatni fogunk
@@ -28,6 +28,19 @@ _set_gdtr:
 	movl %esp, %ebp
 
 	lgdt 0x400000
+
+	movl %ebp, %esp
+	pop %ebp
+	ret
+
+.global _set_idtr
+.type _set_idtr, @function
+_set_idtr:
+	push %ebp
+	movl %esp, %ebp
+
+	lidt 0x401F00
+
 	movl %ebp, %esp
 	pop %ebp
 	ret

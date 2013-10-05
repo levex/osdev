@@ -19,8 +19,9 @@ typedef struct {
 	void (*clear)();
 } DISPLAY;
 #define MODULE(name) static char* __MODULE_NAME = name;
-#define panic(...) kprintf("***KERNEL PANIC*** in %s at line %d in function: %s\n%s", __FILE__, __LINE__, __func__, __VA_ARGS__); for(;;);
+#define panic(...) {kprintf("***KERNEL PANIC*** in %s at line %d in function: %s\n%s", __FILE__, __LINE__, __func__, __VA_ARGS__); for(;;);}
 #define mprint(...) {kprintf("[%s]: ", __MODULE_NAME); kprintf(__VA_ARGS__);}
+#define kerror(...) {kprintf("***KERNEL OOPS***: "); kprintf(__VA_ARGS__);}
 extern uint8_t display_register(DISPLAY d);
 extern uint8_t display_setcurrent(uint8_t id);
 extern DISPLAY* display_getcurrent();

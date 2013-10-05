@@ -10,6 +10,7 @@
 #include "include/display.h"
 #include "display/textmode/dispi_textmode.h"
 #include "include/x86/gdt.h"
+#include "include/x86/idt.h"
 
 static DISPLAY* disp = 0;
 
@@ -31,6 +32,11 @@ void kernel_main()
 	 * tables, timers and memory to continue to tasking.
 	 */
 	gdt_init();
-	/* start tasking */
-	panic("Init couldn't be started.");
+	/* Now, we have the GDT setup, let's load the IDT as well */
+	idt_init();
+	/* Next step, setup PIT. */
+	/* Setup memory manager */
+	/* Setup paging. */
+	/* Enable interrupts and tasking. */
+	panic("Reached end of main(), but no init was started.");
 }
