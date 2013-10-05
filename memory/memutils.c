@@ -23,7 +23,7 @@ void* memcpy(const void* dest, const void* src, size_t count )
 		dst8 += 2;
 		src8 += 2;
 	}
-	return dest;
+	return (void*)dest;
 }
 
 void* memset (void * ptr, int value, size_t num )

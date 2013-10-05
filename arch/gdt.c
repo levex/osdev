@@ -9,9 +9,9 @@ MODULE("GDT");
 extern void _set_gdtr();
 extern void _reload_segments();
 
-static uint64_t* gdt_pointer = 0;
+static uint32_t gdt_pointer = 0;
 static uint32_t  gdt_size = 0;
-static uint64_t* gdtr_loc = 0;
+static uint32_t gdtr_loc = 0;
 
 static uint32_t highpart = 0;
 static uint32_t lowpart = 0;
@@ -25,28 +25,33 @@ void gdt_init()
 	gdt_add_descriptor(0, 0);
 	gdt_add_descriptor(1, 0x00CF9A000000FFFF);
 	gdt_add_descriptor(2, 0x00CF92000000FFFF);
-	//panic("failure to set GDT");
 	gdt_set_descriptor();
 	mprint("Global Descriptor Table is alive.\n");
 }
 
 int gdt_set_descriptor()
 {
-	*gdtr_loc = (gdt_size - 1) & 0x0000FFFF;
-	gdtr_loc = (uint32_t*)((uint32_t)gdtr_loc + 2);
-	*gdtr_loc = gdt_pointer;
+	/* GDTR
+	 * 0-1 = SIZE - 1
+	 * 2-5 = OFFSET
+	 */
+	*(uint16_t*)gdtr_loc = (gdt_size - 1) & 0x0000FFFF;
+	gdtr_loc += 2;
+	*(uint32_t*)gdtr_loc = gdt_pointer;
 	_set_gdtr();
-	mprint("GDTR was set. gdtr.size=%d gdtr.offset=0x%x\n", (*(uint32_t*)((uint32_t)gdtr_loc - 2) & 0x0000FFFF) + 1, *gdtr_loc);
-	panic("Unable to continue.");	
+	mprint("GDTR was set. gdtr.size=%d gdtr.offset=0x%x\n", 
+		*(uint16_t*)(gdtr_loc-2) + 1, 
+		*(uint32_t*)gdtr_loc);
 	_reload_segments();
-	mprint("Segments reloaded.");
+	mprint("Segments reloaded.\n");
 	return 0;
 }
 
 int gdt_add_descriptor(uint8_t id, uint64_t desc)
 {
-	gdt_pointer[id] = desc;
-	mprint("Added entry %d = 0x%x << 32 | 0x%x\n", id, gdt_pointer[id] >> 32, (uint32_t)(gdt_pointer[id]));
+	uint32_t loc = gdt_pointer + sizeof(uint64_t)*id;
+	*(uint64_t*)loc = desc;
+	mprint("Added entry %d = 0x%x << 32 | 0x%x\n", id, (*(uint64_t*)loc) >> 32, *(uint32_t*)loc+4);
 	gdt_size += sizeof(desc);
 	return 0;
 }

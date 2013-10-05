@@ -38,10 +38,14 @@ _reload_segments:
 	push %ebp
 	movl %esp, %ebp
 
-	mov 0x10, %ds
-	mov 0x10, %es
-	mov 0x10, %fs
-	mov 0x10, %gs
+	push %eax
+	mov $0x10, %ax
+	mov %ax, %ds
+	mov %ax, %es
+	mov %ax, %fs
+	mov %ax, %gs
+	mov %ax, %ss
+	pop %eax
 
 	ljmp $0x8, $me
 me:
@@ -54,6 +58,7 @@ me:
 _start: # definialjuk a _start -ot
 
 	movl $stack_top, %esp # gyors allitsuk be a stacket!
+	mov $0x1337, %eax
 
 	call kernel_main # es hivjuk meg a C99 resz! :)
 
