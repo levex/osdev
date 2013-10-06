@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include "../include/display.h"
 #include "../include/string.h"
+#include "../include/mutex.h"
 /* variables */
 static DISPLAY dispis[DISPLAY_MAX_DISPIS];
 static uint8_t _last_register = 1;
@@ -11,6 +12,8 @@ static uint8_t current = 0;
 
 
 static DISPLAY* cd = 0;
+
+static mutex m = { .locked = 0 };
 
 char tbuf[32];
 char bchars[] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
@@ -47,13 +50,13 @@ void __itoa_s(int i,unsigned base,char* buf) {
 }
 
 /* abstraction methods */
-
 int kprintf (const char* str, ...) {
 	if(!str)
 		return 0;
 	char* s = 0;
 	va_list ap;
 	va_start(ap, str);
+	//mutex_lock(&m);
 	for(size_t i = 0; i < strlen((string)str); i++)
 	{
 		if(str[i] == '%')
@@ -100,6 +103,7 @@ int kprintf (const char* str, ...) {
 		}
 	}
 	va_end(ap);
+	mutex_unlock(&m);
 	return 1;
 }
 

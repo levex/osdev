@@ -2,7 +2,8 @@ compile: assembly bkernel link
 all: assembly bkernel link start
 
 start:
-	qemu -kernel levos.bin
+	qemu -kernel levos.bin -monitor /dev/stdout
+	reset
 
 assembly:
 	i586-elf-as boot.s -o boot.o

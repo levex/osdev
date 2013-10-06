@@ -18,9 +18,9 @@ static uint32_t lowpart = 0;
 
 void gdt_init()
 {
-	gdt_pointer = 0x401000; // start GDT data at 4MB
+	gdt_pointer = 0x806; // start GDT data at 4MB
 	mprint("location of GDT: 0x%x\n", gdt_pointer);
-	gdtr_loc =    0x400000;
+	gdtr_loc =    0x800;
 	mprint("location of GDTR: 0x%x\n", gdtr_loc);
 	gdt_add_descriptor(0, 0);
 	gdt_add_descriptor(1, 0x00CF9A000000FFFF);

@@ -2,19 +2,30 @@
 #include "../include/pit.h"
 #include "../include/hal.h"
 #include "../include/display.h"
+#include "../include/tasking.h"
 #include <stdint.h>
 
 MODULE("PIT");
 
+static uint8_t task = 0;
+
+void set_task(uint8_t i)
+{
+	task = i;
+}
+
 void pit_irq()
 {
-	asm volatile("add $0x1c, %esp");
-	asm volatile("pusha");
-	//mprint("PIT IRQ!\n");
-	send_eoi(0);
-	//asm volatile("outb %%al, %%dx": :"a"(0x20),"d"(0x20));
-	asm volatile("popa");
-	asm volatile("iret");
+	if(!task) {
+		asm volatile("add $0x1c, %esp");
+		asm volatile("pusha");
+		send_eoi(0);
+		asm volatile("popa");
+		asm volatile("iret");
+	} else {
+		//asm volatile("add $0x1c, %esp");
+		schedule();
+	}
 }
 
 static inline void __pit_send_cmd(uint8_t cmd)

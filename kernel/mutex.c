@@ -1,0 +1,18 @@
+/** @author Levente Kurusa <levex@linux.com> **/
+#include "../include/display.h"
+#include "../include/mutex.h"
+
+#include <stdint.h>
+
+void mutex_lock(mutex* m)
+{
+	/* if the lock is locked, wait and set its locked state */
+retest:	if(m->locked) goto retest;
+	m->locked = 1;
+}
+
+void mutex_unlock(mutex* m)
+{
+	/* this code can only be accessed by the holding thread, so unlock it */
+	m->locked = 0;
+}

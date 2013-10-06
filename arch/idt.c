@@ -22,9 +22,9 @@ static uint8_t __idt_setup = 0;
 
 void idt_init()
 {
-	idt_location = 0x402000;
+	idt_location = 0x2000;
 	mprint("Location: 0x%x\n", idt_location);
-	idtr_location = 0x401F00;
+	idtr_location = 0x10F0;
 	mprint("IDTR location: 0x%x\n", idtr_location);
 	__idt_setup = 1;
 	for(uint8_t i = 0; i < 255; i++)

@@ -39,7 +39,7 @@ _set_gdtr:
 	push %ebp
 	movl %esp, %ebp
 
-	lgdt 0x400000
+	lgdt 0x800
 
 	movl %ebp, %esp
 	pop %ebp
@@ -51,7 +51,7 @@ _set_idtr:
 	push %ebp
 	movl %esp, %ebp
 
-	lidt 0x401F00
+	lidt 0x10F0
 
 	movl %ebp, %esp
 	pop %ebp
