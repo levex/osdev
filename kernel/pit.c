@@ -8,10 +8,17 @@
 MODULE("PIT");
 
 static uint8_t task = 0;
+static uint8_t task_was_on = 0;
 
 void set_task(uint8_t i)
 {
+	if(!task_was_on) return;
 	task = i;
+}
+
+void enable_task() {
+	task_was_on = 1;
+	task = 1;
 }
 
 void pit_irq()

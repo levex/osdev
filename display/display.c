@@ -13,6 +13,8 @@ static uint8_t current = 0;
 
 static DISPLAY* cd = 0;
 
+MODULE("DISP");
+
 static mutex m = { .locked = 0 };
 
 char tbuf[32];
@@ -56,7 +58,7 @@ int kprintf (const char* str, ...) {
 	char* s = 0;
 	va_list ap;
 	va_start(ap, str);
-	//mutex_lock(&m);
+	mutex_lock(&m);
 	for(size_t i = 0; i < strlen((string)str); i++)
 	{
 		if(str[i] == '%')
@@ -102,8 +104,8 @@ int kprintf (const char* str, ...) {
 			cd->putc(str[i]);
 		}
 	}
-	va_end(ap);
 	mutex_unlock(&m);
+	va_end(ap);
 	return 1;
 }
 

@@ -53,7 +53,10 @@ void kernel_main()
 	mprint("Interrupts were enabled, beware.\n");
 	/* Setup paging. */
 	paging_init();
-	/* Enable tasking. */
+	/* Good job ladies and gentleman, we are now alive.
+	 * Safe and sound, on the way to tasking!
+	 * Let's roll.
+	 */
 	tasking_init();
 	#ifdef __cplusplus
 	mprint("C++ version, may cause malfunction!\n");

@@ -24,6 +24,7 @@ void task2()
 
 void idle_thread()
 {
+	enable_task();
 	while(1);
 }
 
@@ -60,19 +61,43 @@ PROCESS* createProcess(char* name, uint32_t addr)
 	return p;
 }
 
+/* add process but take care of others also! */
 void addProcess(PROCESS* p)
 {
 	set_task(0);
+	__addProcess(p);
+	set_task(1);
+}
+
+/* This adds a process while no others are running! */
+void __addProcess(PROCESS* p)
+{
 	p->next = c->next;
 	p->next->prev = p;
 	p->prev = c;
 	c->next = p;
-	set_task(1);
+}
+
+/* starts tasking */
+void __exec()
+{
+	asm volatile("mov %%eax, %%esp": :"a"(c->esp));
+	asm volatile("pop %gs");
+	asm volatile("pop %fs");
+	asm volatile("pop %es");
+	asm volatile("pop %ds");
+	asm volatile("pop %ebp");
+	asm volatile("pop %edi");
+	asm volatile("pop %esi");
+	asm volatile("pop %edx");
+	asm volatile("pop %ecx");
+	asm volatile("pop %ebx");
+	asm volatile("pop %eax");
+	asm volatile("iret");
 }
 
 void schedule()
 {
-	//while(1);
 	asm volatile("push %eax");
 	asm volatile("push %ebx");
 	asm volatile("push %ecx");
@@ -98,7 +123,7 @@ void schedule()
 	asm volatile("pop %ecx");
 	asm volatile("pop %ebx");
 	asm volatile("pop %eax");
-	asm volatile("out %%al, %%dx": :"d"(0x20), "a"(0x20));
+	asm volatile("out %%al, %%dx": :"d"(0x20), "a"(0x20)); // send EoI to master PIC
 	asm volatile("iret");
 }
 
@@ -108,7 +133,8 @@ void tasking_init()
 	c = createProcess("kidle", (uint32_t)idle_thread);
 	c->next = c;
 	c->prev = c;
-	addProcess(createProcess("task1", (uint32_t)task1));
-	addProcess(createProcess("task2", (uint32_t)task2));
-	mprint("Tasking online!\n");
+	__addProcess(createProcess("task1", (uint32_t)task1));
+	__addProcess(createProcess("task2", (uint32_t)task2));
+	__exec();
+	panic("Failed to start tasking!");
 }

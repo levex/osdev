@@ -34,6 +34,7 @@
 #include <stdint.h>
 
 extern void set_task(uint8_t i);
+extern void enable_task();
 
 extern void pit_init();
 
