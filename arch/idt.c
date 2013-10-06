@@ -13,8 +13,12 @@ static uint16_t idt_size = 0x800;
 static uint8_t test_success = 0;
 static uint32_t test_timeout = 0x1000;
 
+extern void _set_idtr();
+
 void __idt_default_handler();
 void __idt_test_handler();
+
+static uint8_t __idt_setup = 0;
 
 void idt_init()
 {
@@ -22,6 +26,7 @@ void idt_init()
 	mprint("Location: 0x%x\n", idt_location);
 	idtr_location = 0x401F00;
 	mprint("IDTR location: 0x%x\n", idtr_location);
+	__idt_setup = 1;
 	for(uint8_t i = 0; i < 255; i++)
 	{
 		idt_register_interrupt(i, (uint32_t)&__idt_default_handler);
@@ -45,7 +50,7 @@ void idt_init()
 		}
 	}
 	if(!test_success)
-		panic("Link test failed.");
+		panic("IDT link is offline (timeout).");
 	return;
 }
 
@@ -56,36 +61,19 @@ void __idt_test_handler()
 	INT_END;
 }
 
-void __idt_default_handler()
-{
-	IRQ_START;
-	panic("Unhandled interrupt!\n");
-	//send_eoi(16);
-	IRQ_END;
-}
-
 void idt_register_interrupt(uint8_t i, uint32_t callback)
 {
-	idt_descriptor desc = {0};
-	desc.offset_0_15 = (uint16_t)(callback & 0x0000ffff);
-	desc.selector = 0x8;
-	desc.zero = 0;
-	desc.type_attr = 0 | IDT_32BIT_INTERRUPT_GATE | IDT_PRESENT;
-	desc.offset_16_31 = (uint16_t)(callback >> 16);
-	/*mprint("Descriptor: id%d offset 0x%x, orig 0x%x\n", 
-		i,
-		desc.offset_16_31 << 16 | desc.offset_0_15,
-		(uint32_t)callback);*/
-	add_idt_descriptor(i, desc);
+	if(!__idt_setup) panic("Invalid IDT!");
+	*(uint16_t*)(idt_location + 8*i + 0) = (uint16_t)(callback & 0x0000ffff);
+	*(uint16_t*)(idt_location + 8*i + 2) = (uint16_t)0x8;
+	*(uint8_t*) (idt_location + 8*i + 4) = 0x00;
+	*(uint8_t*) (idt_location + 8*i + 5) = 0x8e;//0 | IDT_32BIT_INTERRUPT_GATE | IDT_PRESENT;
+	*(uint16_t*)(idt_location + 8*i + 6) = (uint16_t)((callback & 0xffff0000) >> 16);
+	if(test_success) mprint("Registered INT#%d\n", i);
+	return;
 }
 
 void add_idt_descriptor(uint8_t id, idt_descriptor desc)
 {
-	*(uint16_t*)(idt_location + sizeof(idt_descriptor)*id + 0) = desc.offset_0_15;
-	*(uint16_t*)(idt_location + sizeof(idt_descriptor)*id + 2) = desc.selector;
-	*(uint8_t*) (idt_location + sizeof(idt_descriptor)*id + 4) = desc.zero;
-	*(uint8_t*) (idt_location + sizeof(idt_descriptor)*id + 5) = desc.type_attr;
-	*(uint16_t*)(idt_location + sizeof(idt_descriptor)*id + 6) = desc.offset_16_31;
-	if(test_success) mprint("Registered INT#%d\n", id);
-	return;
+	panic("Deprecated function called!");
 }

@@ -8,10 +8,13 @@ MODULE("PIT");
 
 void pit_irq()
 {
-	IRQ_START;
-	mprint("PIT IRQ!\n");
+	asm volatile("add $0x1c, %esp");
+	asm volatile("pusha");
+	//mprint("PIT IRQ!\n");
 	send_eoi(0);
-	IRQ_END;
+	//asm volatile("outb %%al, %%dx": :"a"(0x20),"d"(0x20));
+	asm volatile("popa");
+	asm volatile("iret");
 }
 
 static inline void __pit_send_cmd(uint8_t cmd)
@@ -56,7 +59,8 @@ static void pit_start_counter (uint32_t freq, uint8_t counter, uint8_t mode) {
 
 void pit_init()
 {
-	set_int(32, (uint32_t)pit_irq);
+	mprint("Registering IRQ#0=INT#32 as PIT_IRQ\n");
+	set_int(32, pit_irq);
 	pit_start_counter (200,PIT_OCW_COUNTER_0, PIT_OCW_MODE_SQUAREWAVEGEN);
 	mprint("Init done.\n");
 }

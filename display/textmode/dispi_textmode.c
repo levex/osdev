@@ -20,7 +20,6 @@ inline uint16_t __textmode_create_entry(char c, uint8_t color)
 
 static inline void __textmode_scrollup()
 {
-	uint16_t nullentry = __textmode_create_entry(' ', __textmode_make_color(d.con.fgcol, d.con.bgcol));
 	for(int y = 0; y < TEXTMODE_HEIGHT; y++)
 	{
 		memcpy(VGA_MEMORY + y*TEXTMODE_WIDTH*2 ,

@@ -8,11 +8,14 @@
 #define INT_END asm volatile("popa"); \
 	asm volatile("iret");
 
-#define IRQ_START asm volatile("add $12, %esp");\
-	asm volatile("pushal");
 
-#define IRQ_END asm volatile("popal"); \
-	asm volatile("iretl");
+
+#define IRQ_START asm volatile("pusha");
+
+#define IRQ_END asm volatile("popa"); \
+	asm volatile("iret");
+
+
 extern void hal_init();
 
 extern void send_eoi(uint8_t irq);

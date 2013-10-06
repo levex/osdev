@@ -33,8 +33,8 @@ void pic_init()
 	outportb(PIC_SLAVE_DATA, 0x01);
 
 	mprint("Resetting masks\n");
-	outportb(PIC_MASTER_DATA, m1);
-	outportb(PIC_SLAVE_DATA, m2);
+	outportb(PIC_MASTER_DATA, 0);
+	outportb(PIC_SLAVE_DATA, 0);
 	mprint("Init done.\n");
 }
 

@@ -47,5 +47,14 @@ void kernel_main()
 	/* Setup memory manager */
 	/* Setup paging. */
 	/* Enable tasking. */
+	#ifdef __cplusplus
+	mprint("C++ version, may cause malfunction!\n");
+	#endif
 	panic("Reached end of main(), but no init was started.");
+	for(;;);
+}
+
+void _test()
+{
+	mprint("Unhandled IRQ\n");
 }

@@ -21,6 +21,18 @@ stack_top:
 
 # az elf-ben a .text szekcio tartalmazza a kodot amit futtatni fogunk
 .section .text
+
+.global __idt_default_handler
+.type __idt_default_handler, @function
+__idt_default_handler:
+	pushal
+	mov $0x20, %al
+	mov $0x20, %dx
+	out %al, %dx
+	#call _test
+	popal
+	iretl
+
 .global _set_gdtr
 .type _set_gdtr, @function
 _set_gdtr:
