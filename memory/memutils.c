@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-static mutex m_memcpy = { .locked = 0 };
+DEFINE_MUTEX(m_memcpy);
 
 void* memcpy(const void* dest, const void* src, size_t count )
 {

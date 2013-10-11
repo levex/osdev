@@ -15,7 +15,7 @@ static DISPLAY* cd = 0;
 
 MODULE("DISP");
 
-static mutex m = { .locked = 0 };
+DEFINE_MUTEX(m_kprintf);
 
 char tbuf[32];
 char bchars[] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
@@ -58,7 +58,7 @@ int kprintf (const char* str, ...) {
 	char* s = 0;
 	va_list ap;
 	va_start(ap, str);
-	mutex_lock(&m);
+	mutex_lock(&m_kprintf);
 	for(size_t i = 0; i < strlen((string)str); i++)
 	{
 		if(str[i] == '%')
@@ -104,7 +104,7 @@ int kprintf (const char* str, ...) {
 			cd->putc(str[i]);
 		}
 	}
-	mutex_unlock(&m);
+	mutex_unlock(&m_kprintf);
 	va_end(ap);
 	return 1;
 }

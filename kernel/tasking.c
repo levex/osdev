@@ -2,6 +2,7 @@
 #include "../include/x86/gdt.h"
 #include "../include/display.h"
 #include "../include/pit.h"
+/** @author Levente Kurusa <levex@linux.com> **/
 #include "../include/tasking.h"
 #include "../include/memory.h"
 
@@ -15,7 +16,7 @@ uint8_t __enabled = 0;
 
 void task1()
 {
-	while(1) kprintf("[1] Hello, I am task one!\n");
+	while(1) schedule_noirq();kprintf("[1] Hello, I am task one!\n");
 }
 
 void task2()
@@ -31,12 +32,23 @@ void idle_thread()
 {
 	enable_task();
 	__enabled = 1;
-	while(1);
+	late_init();
 }
 
 void kill(uint32_t pid)
 {
 	if(pid == 1) panic("Idle can't be killed!\n");
+}
+
+void _kill()
+{
+	if(c->pid == 1) { set_task(0); panic("Idle can't be killed!"); }
+	mprint("Killing process %s (%d)\n", c->name, c->pid);
+	set_task(0);
+	c->prev->next = c->next;
+	c->next->prev = c->prev;
+	set_task(1);
+	schedule_noirq();
 }
 
 PROCESS* createProcess(char* name, uint32_t addr)
@@ -147,8 +159,8 @@ void tasking_init()
 	c->next = c;
 	c->prev = c;
 	__addProcess(createProcess("task1", (uint32_t)task1));
-	__addProcess(createProcess("task2", (uint32_t)task2));
-	__addProcess(createProcess("task3", (uint32_t)task3));
+	/*__addProcess(createProcess("task2", (uint32_t)task2));
+	__addProcess(createProcess("task3", (uint32_t)task3));*/
 	__exec();
 	panic("Failed to start tasking!");
 }

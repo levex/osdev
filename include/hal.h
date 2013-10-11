@@ -10,7 +10,8 @@
 
 
 
-#define IRQ_START asm volatile("pusha");
+#define IRQ_START asm volatile("add $0x1c, %esp"); \
+		asm volatile("pusha");
 
 #define IRQ_END asm volatile("popa"); \
 	asm volatile("iret");

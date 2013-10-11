@@ -2,6 +2,7 @@
 #include "../../include/display.h"
 #include "dispi_textmode.h"
 #include "../../include/string.h"
+#include "../../include/mutex.h"
 #include "../../include/memory.h"
 
 static DISPLAY d = {0}; // we don't have a mm yet, must reserve static BSS space for it.
@@ -18,14 +19,17 @@ inline uint16_t __textmode_create_entry(char c, uint8_t color)
 	return _char | _color << 8;
 }
 
+DEFINE_MUTEX(m_scroll);
 static inline void __textmode_scrollup()
 {
+	mutex_lock(&m_scroll);
 	for(int y = 0; y < TEXTMODE_HEIGHT; y++)
 	{
 		memcpy(VGA_MEMORY + y*TEXTMODE_WIDTH*2 ,
 			VGA_MEMORY + (y+1)*TEXTMODE_WIDTH*2,
 			TEXTMODE_WIDTH*2);
 	}
+	mutex_unlock(&m_scroll);
 }
 
 void __textmode_onregister()

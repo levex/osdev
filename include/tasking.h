@@ -1,3 +1,4 @@
+/** @author Levente Kurusa <levex@linux.com> **/
 #ifndef __TASKING_H_
 #define __TASKING_H_
 
@@ -14,6 +15,10 @@ typedef struct _process {
 	struct _process* next;
 } PROCESS;
 
+extern void addProcess(PROCESS* p);
+extern PROCESS* createProcess(char* name, uint32_t addr);
+
+extern void _kill();
 extern void schedule();
 extern void schedule_noirq();
 extern void tasking_init();

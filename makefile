@@ -17,6 +17,7 @@ bkernel:
 	cd memory && $(MAKE) $(MFLAGS)
 	cd arch && $(MAKE) $(MFLAGS)
 	cd kernel && $(MAKE) $(MFLAGS)
+	cd drivers && $(MAKE) $(MFLAGS)
 
 objs = `cat objs.txt`
 link:

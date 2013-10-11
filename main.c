@@ -15,10 +15,14 @@
 #include "include/pic.h"
 #include "include/hal.h"
 #include "include/tasking.h"
+#include "include/levos.h"
+#include "include/keyboard.h"
 
 static DISPLAY* disp = 0;
 
 MODULE("MAIN");
+
+void _test();
 
 extern void kernel_end;
 extern void kernel_base;
@@ -61,11 +65,31 @@ void kernel_main()
 	#ifdef __cplusplus
 	mprint("C++ version, may cause malfunction!\n");
 	#endif
-	panic("Reached end of main(), but no init was started.");
+	panic("Reached end of main(), but tasking was not started.");
 	for(;;);
+}
+
+/* This function is ought to setup peripherials and such,
+ * while also starting somekind of /bin/sh
+ */
+void late_init()
+{
+	/* From now, we are preemptible. Setup peripherials */
+	addProcess(createProcess("kbd_init", keyboard_init));
+	addProcess(createProcess("_test", _test));
+	/* We cannot die as we are the idle thread.
+	 * schedule away so that we don't starve others
+	 */
+	while(1) schedule_noirq();
+	panic("Reached end of late_init()\n");
 }
 
 void _test()
 {
-	mprint("Unhandled IRQ\n");
+	while(1) {
+		char c = keyboard_get_key();
+		if(c == 0) schedule_noirq();
+		kprintf("%c", c);
+		schedule_noirq();
+	}
 }
