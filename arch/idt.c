@@ -3,6 +3,7 @@
 #include "../include/x86/idt.h"
 #include "../include/display.h"
 #include "../include/hal.h"
+#include "../include/tasking.h"
 
 MODULE("IDT");
 
@@ -32,6 +33,7 @@ void idt_init()
 		idt_register_interrupt(i, (uint32_t)&__idt_default_handler);
 	}
 	idt_register_interrupt(0x2f, (uint32_t)&__idt_test_handler);
+	idt_register_interrupt(0x2e, (uint32_t)&schedule);
 	mprint("Registered all interrupts to default handler.\n");
 	/* create IDTR now */
 	*(uint16_t*)idtr_location = idt_size - 1;

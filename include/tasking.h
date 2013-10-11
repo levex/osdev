@@ -15,6 +15,7 @@ typedef struct _process {
 } PROCESS;
 
 extern void schedule();
+extern void schedule_noirq();
 extern void tasking_init();
 
 #endif

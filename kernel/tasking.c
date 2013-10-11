@@ -11,20 +11,26 @@ MODULE("TASK");
 
 PROCESS* c = 0;
 uint32_t lpid = 0;
+uint8_t __enabled = 0;
 
 void task1()
 {
-	while(1) kprintf("1");
+	while(1) kprintf("[1] Hello, I am task one!\n");
 }
 
 void task2()
 {
-	while(1) kprintf("2");
+	while(1) kprintf("[2] Hello, I am task two! :)\n");
+}
+void task3()
+{
+	while(1) kprintf("[3] Mutex locking memcpy and kprintf! Awesome!\n");
 }
 
 void idle_thread()
 {
 	enable_task();
+	__enabled = 1;
 	while(1);
 }
 
@@ -96,6 +102,13 @@ void __exec()
 	asm volatile("iret");
 }
 
+void schedule_noirq()
+{
+	if(!__enabled) return;
+	asm volatile("int $0x2e");
+	return;
+}
+
 void schedule()
 {
 	asm volatile("push %eax");
@@ -135,6 +148,7 @@ void tasking_init()
 	c->prev = c;
 	__addProcess(createProcess("task1", (uint32_t)task1));
 	__addProcess(createProcess("task2", (uint32_t)task2));
+	__addProcess(createProcess("task3", (uint32_t)task3));
 	__exec();
 	panic("Failed to start tasking!");
 }

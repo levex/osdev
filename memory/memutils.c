@@ -1,11 +1,14 @@
 /** @author Levente Kurusa <levex@linux.com> **/
 #include "../include/memory.h"
+#include "../include/mutex.h"
 #include <stdint.h>
 #include <stddef.h>
 
+static mutex m_memcpy = { .locked = 0 };
 
 void* memcpy(const void* dest, const void* src, size_t count )
 {
+	mutex_lock(&m_memcpy);
 	char* dst8 = (char*)dest;
 	char* src8 = (char*)src;
 
@@ -23,6 +26,7 @@ void* memcpy(const void* dest, const void* src, size_t count )
 		dst8 += 2;
 		src8 += 2;
 	}
+	mutex_unlock(&m_memcpy);
 	return (void*)dest;
 }
 void* memset16 (void *ptr, uint16_t value, size_t num)
