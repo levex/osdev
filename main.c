@@ -88,13 +88,35 @@ void late_init()
 	panic("Reached end of late_init()\n");
 }
 static char c = 0;
+static char* buffer = 0;
+static uint16_t loc = 0;
 void _test()
 {
+	buffer = (char*)malloc(256);
+	kprintf("Welcome to LevOS 4.0\nThis is a very basic terminal.\nDon't do anything stupid.\n");
+prompt:
+	kprintf("\n(kernel) $ ");
 	while(1) {
 		if(!keyboard_enabled()){ schedule_noirq(); continue; }
-		c = 0;
 		c = keyboard_get_key();
 		if(!c) continue;
-		kprintf("%c", c);
+		if(c == '\n')
+		{
+			buffer[loc] = 0;
+			loc = 0;
+			if(strcmp(buffer, "help") == 0)
+			{
+				kprintf("\nLevOS4.0\nThis is the kernel terminal.\nDon't do anything stupid.");
+				kprintf("\nCommands available: help; reboot");
+			}
+			if(strcmp(buffer, "reboot") == 0)
+			{
+				outportb(0x64, 0xFE);
+			}
+			goto prompt;
+		}
+		buffer[loc++] = c;
+		buffer[loc] = 0;
+		disp->putc(c);
 	}
 }
