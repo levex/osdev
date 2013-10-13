@@ -17,6 +17,13 @@
 	asm volatile("iret");
 
 
+#define DEFINE_IRQ(irqno, name, functionname, functocall) void functionname() { \
+	IRQ_START; \
+	send_eoi(irqno); \
+	addProcess(createProcess(name, functocall)); IRQ_END;}
+
+#define START(name, addr) addProcess(createProcess(name, addr));
+
 extern void hal_init();
 
 extern void send_eoi(uint8_t irq);

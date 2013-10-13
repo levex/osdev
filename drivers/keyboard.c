@@ -5,6 +5,7 @@
 #include "../include/hal.h"
 #include "../include/tasking.h"
 #include "../include/keyboard.h"
+#include "../include/mutex.h"
 
 MODULE("KBD");
 
@@ -12,6 +13,8 @@ void keyboard_irq();
 
 uint8_t lastkey = 0;
 uint8_t *keycache = 0;
+uint16_t key_loc = 0;
+uint8_t __kbd_enabled = 0;
 
 enum KEYCODE {
 	NULL_KEY = 0,
@@ -78,10 +81,18 @@ enum KEYCODE {
 /* This is a late init, must end with _kill() */
 void keyboard_init()
 {
-	mprint("Driver init.\n");
+	mprint("PS/2 Keyboard init sequence activated.\n");
+	keycache = (uint8_t*)malloc(256);
+	memset(keycache, 0, 256);
 	/* Install IRQ */
 	set_int(33, keyboard_irq);
+	__kbd_enabled = 1;
 	_kill(); /* end me */
+}
+
+uint8_t keyboard_enabled()
+{
+	return __kbd_enabled;
 }
 
 void keyboard_read_key()
@@ -91,11 +102,22 @@ void keyboard_read_key()
 		lastkey = inportb(0x60);
 }
 
+
+DEFINE_MUTEX(m_getkey);
+static char c = 0;
 char keyboard_get_key()
 {
-	keyboard_read_key();
-	if(lastkey == 0) return 0;
-	char c = keyboard_to_ascii(lastkey);
+	mutex_lock(&m_getkey);
+	c = 0;
+	if(key_loc == 0) goto out;
+	c = *keycache;
+	key_loc --;
+	for(int i = 0; i < 256; i++)
+	{
+		keycache[i] = keycache[i+1];
+	}
+out:
+	mutex_unlock(&m_getkey);
 	return c;
 }
 static char* _qwertzuiop = "qwertzuiop"; // 0x10-0x1c
@@ -104,6 +126,7 @@ static char* _yxcvbnm = "yxcvbnm";
 uint8_t keyboard_to_ascii(uint8_t key)
 {
 	if(key == 0x1C) return '\n';
+	if(key == 0x39) return ' ';
 	if(key >= 0x10 && key <= 0x1C)
 	{
 		return _qwertzuiop[key - 0x10];
@@ -117,9 +140,11 @@ uint8_t keyboard_to_ascii(uint8_t key)
 	return 0;
 }
 
+
 void keyboard_irq()
 {
 	IRQ_START;
+	keycache[key_loc++] = keyboard_to_ascii(inportb(0x60));
 	send_eoi(1);
 	IRQ_END;
 }

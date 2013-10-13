@@ -51,6 +51,16 @@ void __itoa_s(int i,unsigned base,char* buf) {
    __itoa(i,base,buf);
 }
 
+/*DEFINE_MUTEX(m_mprintf);
+static char* loc = 0;
+void __mprintf(char *m, char *fmt, ...)
+{
+	mutex_lock(&m_mprintf);
+	kprintf("[%s]: ", m);
+	kprintf(fmt, loc);
+	mutex_unlock(&m_mprintf);
+}*/
+
 /* abstraction methods */
 int kprintf (const char* str, ...) {
 	if(!str)
@@ -59,6 +69,7 @@ int kprintf (const char* str, ...) {
 	va_list ap;
 	va_start(ap, str);
 	mutex_lock(&m_kprintf);
+	//cd->putc('c');
 	for(size_t i = 0; i < strlen((string)str); i++)
 	{
 		if(str[i] == '%')

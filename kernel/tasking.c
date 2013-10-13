@@ -2,7 +2,6 @@
 #include "../include/x86/gdt.h"
 #include "../include/display.h"
 #include "../include/pit.h"
-/** @author Levente Kurusa <levex@linux.com> **/
 #include "../include/tasking.h"
 #include "../include/memory.h"
 
@@ -16,7 +15,9 @@ uint8_t __enabled = 0;
 
 void task1()
 {
-	while(1) schedule_noirq();kprintf("[1] Hello, I am task one!\n");
+	mprint("Tasking online.\n");
+	_kill();
+//	while(1) schedule_noirq();kprintf("[1] Hello, I am task one!\n");
 }
 
 void task2()
@@ -144,11 +145,11 @@ void schedule()
 	asm volatile("pop %ebp");
 	asm volatile("pop %edi");
 	asm volatile("pop %esi");
+	asm volatile("out %%al, %%dx": :"d"(0x20), "a"(0x20)); // send EoI to master PIC
 	asm volatile("pop %edx");
 	asm volatile("pop %ecx");
 	asm volatile("pop %ebx");
 	asm volatile("pop %eax");
-	asm volatile("out %%al, %%dx": :"d"(0x20), "a"(0x20)); // send EoI to master PIC
 	asm volatile("iret");
 }
 

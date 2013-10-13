@@ -33,12 +33,14 @@ extern "C" /* ha C++ compiler, akkor ez a függvény legyen C99es linkage-ű. */
 void kernel_main()
 {
 	int eax;
-	asm("movl %%eax, %0": "=a"(eax));
+	asm("movl %%eax, %0": "=m"(eax));
 	/* We create a textmode display driver, register it, then set it as current */
 	display_setcurrent(display_register(textmode_init()));
+	disp = display_getcurrent();
 	mprint("Welcome to LevOS 4.0, very unstable!\n");
 	mprint("Kernel base is 0x%x,  end is 0x%x\n", &kernel_base, &kernel_end);
-	if(eax == 0x1337) mprint("Assembly link established.\n");
+	if(eax == 0x1337) { mprint("Assembly link established.\n"); }
+	else panic("Couldn't establish assembly link!");
 	/* Setup memory manager */
 	mm_init(&kernel_end);
 	/* So far good, we have a display running,
@@ -62,9 +64,11 @@ void kernel_main()
 	 * Let's roll.
 	 */
 	tasking_init();
-	#ifdef __cplusplus
-	mprint("C++ version, may cause malfunction!\n");
-	#endif
+	/* Tasking should have started late_init(),
+	 * if not, we are screwed as no peripherials are in
+	 * an operating state. Tell the user that we ran away
+	 * in terror.
+	 */
 	panic("Reached end of main(), but tasking was not started.");
 	for(;;);
 }
@@ -75,21 +79,22 @@ void kernel_main()
 void late_init()
 {
 	/* From now, we are preemptible. Setup peripherials */
-	addProcess(createProcess("kbd_init", keyboard_init));
-	addProcess(createProcess("_test", _test));
+	START("kbd_init", keyboard_init);
+	START("_test", _test);
 	/* We cannot die as we are the idle thread.
 	 * schedule away so that we don't starve others
 	 */
 	while(1) schedule_noirq();
 	panic("Reached end of late_init()\n");
 }
-
+static char c = 0;
 void _test()
 {
 	while(1) {
-		char c = keyboard_get_key();
-		if(c == 0) schedule_noirq();
+		if(!keyboard_enabled()){ schedule_noirq(); continue; }
+		c = 0;
+		c = keyboard_get_key();
+		if(!c) continue;
 		kprintf("%c", c);
-		schedule_noirq();
 	}
 }

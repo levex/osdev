@@ -88,6 +88,7 @@ void textmode_puts(string s)
 }
 void textmode_putc(char c)
 {
+	if(!c) return;
 	/* check for line wrapping and LF character */
 	if(d.con.cx >= TEXTMODE_WIDTH || c == '\n')
 	{
@@ -100,7 +101,7 @@ void textmode_putc(char c)
 		d.con.cy --;
 	}
 	/* list of special characters */
-	if(c == '\n' || c == 0) return;
+	if(c == '\n') return;
 	/* write it to video memory */
 	const size_t index = d.con.cy * 2 * TEXTMODE_WIDTH + d.con.cx * 2;
 	*(uint16_t*)(VGA_MEMORY + index) = __textmode_create_entry(c, __textmode_make_color(d.con.fgcol, d.con.bgcol));
