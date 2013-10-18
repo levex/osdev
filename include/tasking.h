@@ -15,8 +15,10 @@ typedef struct _process {
 	struct _process* next;
 } PROCESS;
 
-extern void addProcess(PROCESS* p);
+extern int addProcess(PROCESS* p);
 extern PROCESS* createProcess(char* name, uint32_t addr);
+
+extern int is_pid_running(int pid);
 
 extern void _kill();
 extern void schedule();

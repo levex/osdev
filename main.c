@@ -17,6 +17,7 @@
 #include "include/tasking.h"
 #include "include/levos.h"
 #include "include/keyboard.h"
+#include "include/device.h"
 
 static DISPLAY* disp = 0;
 
@@ -24,8 +25,39 @@ MODULE("MAIN");
 
 void _test();
 
+int levex_id = 0;
+
 extern void kernel_end;
 extern void kernel_base;
+
+void test_device_read(uint8_t* buffer, uint32_t offset, uint32_t len)
+{
+	len --;
+	while(len--)
+		*buffer++ = 'L';
+	*buffer = 0;
+	return len;
+}
+
+void create_test_device()
+{
+	device_t *testdev = 0;
+	testdev = (device_t*)malloc(sizeof(device_t));
+	testdev->name = "/dev/levex";
+	testdev->unique_id = 0x1337;
+	testdev->read = test_device_read;
+	levex_id = device_add(testdev);
+	_kill();
+}
+
+void __read()
+{
+	uint8_t* buffer = (uint8_t*)malloc(32);
+	device_t *testdev = device_get(levex_id);
+	testdev->read(buffer, 0, 32);
+	mprint("READ: %s\n", buffer);
+	_kill();
+}
 
 #if defined(__cplusplus)
 extern "C" /* ha C++ compiler, akkor ez a függvény legyen C99es linkage-ű. */
@@ -81,6 +113,8 @@ void late_init()
 	/* From now, we are preemptible. Setup peripherials */
 	START("kbd_init", keyboard_init);
 	START("_test", _test);
+	START("devicemm", device_init);
+	START("testdev", create_test_device);
 	/* We cannot die as we are the idle thread.
 	 * schedule away so that we don't starve others
 	 */
@@ -95,23 +129,29 @@ void _test()
 	buffer = (char*)malloc(256);
 	kprintf("Welcome to LevOS 4.0\nThis is a very basic terminal.\nDon't do anything stupid.\n");
 prompt:
-	kprintf("\n(kernel) $ ");
+	kprintf("(kernel) $ ");
 	while(1) {
 		if(!keyboard_enabled()){ schedule_noirq(); continue; }
 		c = keyboard_get_key();
 		if(!c) continue;
 		if(c == '\n')
 		{
+			disp->putc(c);
 			buffer[loc] = 0;
 			loc = 0;
 			if(strcmp(buffer, "help") == 0)
 			{
-				kprintf("\nLevOS4.0\nThis is the kernel terminal.\nDon't do anything stupid.");
-				kprintf("\nCommands available: help; reboot");
+				kprintf("LevOS4.0\nThis is the kernel terminal.\nDon't do anything stupid.\n");
+				kprintf("Commands available: help; reboot\n");
 			}
 			if(strcmp(buffer, "reboot") == 0)
 			{
 				outportb(0x64, 0xFE);
+			}
+			if(strcmp(buffer, "read") == 0)
+			{
+				int pid = START("read", __read);
+				while(is_pid_running(pid))schedule_noirq();
 			}
 			goto prompt;
 		}

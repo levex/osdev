@@ -52,6 +52,22 @@ void _kill()
 	schedule_noirq();
 }
 
+int is_pid_running(int pid)
+{
+	set_task(0);
+	PROCESS* p = c;
+	PROCESS* orig = c;
+	int ret = 0;
+	while(1)
+	{
+		if(p->pid == pid)  { ret = 1; break; }
+		p = p->next;
+		if(p == orig) break;
+	}
+	set_task(1);
+	return ret;
+}
+
 PROCESS* createProcess(char* name, uint32_t addr)
 {
 	PROCESS* p = malloc(sizeof(PROCESS));
@@ -81,11 +97,12 @@ PROCESS* createProcess(char* name, uint32_t addr)
 }
 
 /* add process but take care of others also! */
-void addProcess(PROCESS* p)
+int addProcess(PROCESS* p)
 {
 	set_task(0);
 	__addProcess(p);
 	set_task(1);
+	return p->pid;
 }
 
 /* This adds a process while no others are running! */
