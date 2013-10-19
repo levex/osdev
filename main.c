@@ -30,6 +30,23 @@ int levex_id = 0;
 extern void kernel_end;
 extern void kernel_base;
 
+void __cursor_updater()
+{
+	uint16_t lastpos = 0;
+	while(1)
+	{
+		uint16_t pos = disp->con.cy*80 + disp->con.cx;
+		if(pos == lastpos) { schedule_noirq(); continue; }
+		lastpos = pos;
+		outportb(0x3D4, 0x0F);
+		outportb(0x3D5, (uint8_t)pos&0xFF);
+		outportb(0x3D4, 0x0E);
+		outportb(0x3D5, (uint8_t)(pos>>8)&0xFF);
+		schedule_noirq();
+	}
+	_kill();
+}
+
 void test_device_read(uint8_t* buffer, uint32_t offset, uint32_t len)
 {
 	len --;
@@ -138,6 +155,7 @@ void late_init()
 	/* From now, we are preemptible. Setup peripherials */
 	int pid = 0;	
 	pid = START("kbd_init", keyboard_init);
+	pid = START("cursor_update", __cursor_updater);
 	pid = START("devicemm", device_init);
 	pid = START("testdev", create_test_device);
 
