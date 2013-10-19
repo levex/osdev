@@ -13,6 +13,8 @@ static uint8_t current = 0;
 
 static DISPLAY* cd = 0;
 
+void __kprintf_va_list(char* str, va_list ap);
+
 MODULE("DISP");
 
 DEFINE_MUTEX(m_kprintf);
@@ -51,24 +53,34 @@ void __itoa_s(int i,unsigned base,char* buf) {
    __itoa(i,base,buf);
 }
 
-/*DEFINE_MUTEX(m_mprintf);
+DEFINE_MUTEX(m_mprintf);
 static char* loc = 0;
-void __mprintf(char *m, char *fmt, ...)
+void __mprintf(char *m, ...)
 {
 	mutex_lock(&m_mprintf);
+	va_list ap;
+	va_start(ap, m);
 	kprintf("[%s]: ", m);
-	kprintf(fmt, loc);
+	char *fmt = va_arg(ap, char*);
+	__kprintf_va_list(fmt, ap);
 	mutex_unlock(&m_mprintf);
-}*/
+}
 
 /* abstraction methods */
 int kprintf (const char* str, ...) {
 	if(!str)
 		return 0;
-	char* s = 0;
 	va_list ap;
 	va_start(ap, str);
+	__kprintf_va_list(str, ap);
+	return 1;
+}
+
+
+void __kprintf_va_list(char* str, va_list ap)
+{
 	mutex_lock(&m_kprintf);
+	char* s = 0;
 	//cd->putc('c');
 	for(size_t i = 0; i < strlen((string)str); i++)
 	{
@@ -117,9 +129,7 @@ int kprintf (const char* str, ...) {
 	}
 	mutex_unlock(&m_kprintf);
 	va_end(ap);
-	return 1;
 }
-
 
 /* interface methods */
 
