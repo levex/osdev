@@ -18,6 +18,7 @@
 #include "include/levos.h"
 #include "include/keyboard.h"
 #include "include/device.h"
+#include "include/rtc.h"
 
 static DISPLAY* disp = 0;
 
@@ -29,6 +30,58 @@ int levex_id = 0;
 
 extern void kernel_end;
 extern void kernel_base;
+
+static char* hostname = "levex-levos";
+static char* username = "root";
+
+void __login()
+{
+	uint8_t *buffer = (uint8_t*)malloc(64);
+	int l = 0;
+	char c = 0;
+retry:
+	memset(buffer, 0, 64);
+	kprintf("\n%s login: ", hostname);
+	c = 0;
+	l = 0;
+	while(1)
+	{
+		c = keyboard_get_key();
+		if(!c) { schedule_noirq(); continue;}
+		if(c == '\n')
+		{
+			if(strcmp(buffer, "root") == 0)
+			{
+				break;
+			}
+			goto retry;
+		}
+		buffer[l++] = c;
+		buffer[l] = 0;
+		disp->putc(c);
+	}
+pwd:
+	memset(buffer, 0, 64);
+	kprintf("\n%s@%s password: ", username, hostname);
+	l = 0;
+	c = 0;
+	while(1)
+	{
+		c = keyboard_get_key();
+		if(!c) { schedule_noirq(); continue;}
+		if(c == '\n')
+		{
+			if(strcmp(buffer, "toor") == 0)
+			{
+				disp->putc('\n');
+				_kill();
+			} else goto retry;
+		}
+		buffer[l] = c;
+		buffer[l + 1] = 0;
+		l++;
+	}
+}
 
 void __cursor_updater()
 {
@@ -164,12 +217,14 @@ void late_init()
 	pid = START("cursor_update", __cursor_updater);
 	pid = START("devicemm", device_init);
 	pid = START("testdev", create_test_device);
+	pid = START("rtc_init", rtc_init);
 
 	/* We now wait till all the late_inits have finished */
 	while(is_pid_running(pid))schedule_noirq();
 	/* Once they are done, pass control to the kernel terminal,
 	 * so that it will (eventually) start a /init or /bin/sh
 	 */
+	START_AND_WAIT("login", __login);
 	START("_test", _test);
 	/* We cannot die as we are the idle thread.
 	 * schedule away so that we don't starve others
@@ -227,6 +282,10 @@ prompt:
 			if(strcmp(buffer, "ps") == 0)
 			{
 				START_AND_WAIT("ps", __ps);
+			}
+			if(strcmp(buffer, "time") == 0)
+			{
+				START_AND_WAIT("time", rtc_print_time_as_proc);
 			}
 			goto prompt;
 		}

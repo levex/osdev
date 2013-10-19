@@ -31,7 +31,7 @@ void* memcpy(const void* dest, const void* src, size_t count )
 }
 void* memset16 (void *ptr, uint16_t value, size_t num)
 {
-	uint8_t* p = ptr;
+	uint16_t* p = ptr;
 	while(num--)
 		*p++ = value;
 	return ptr;
