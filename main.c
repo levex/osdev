@@ -177,15 +177,18 @@ static uint16_t loc = 0;
 void _test()
 {
 	buffer = (char*)malloc(256);
+	char* prompt = "(kernel) $ ";
+	uint8_t prompt_size = strlen(prompt);
 	kprintf("Welcome to LevOS 4.0\nThis is a very basic terminal.\nDon't do anything stupid.\n");
 prompt:
-	kprintf("(kernel) $ ");
+	kprintf(prompt);
 	while(1) {
 		if(!keyboard_enabled()){ schedule_noirq(); continue; }
 		c = keyboard_get_key();
 		if(!c) continue;
 		if(c == '\r')
 		{
+			if(disp->con.cx <= prompt_size) continue;
 			disp->con.cx --;
 			disp->putc(' ');
 			disp->con.cx --;
