@@ -52,6 +52,18 @@ void _kill()
 	schedule_noirq();
 }
 
+void tasking_print_all()
+{
+	PROCESS *orig = c;
+	PROCESS *p = orig;
+	while(1)
+	{
+		kprintf("Process: %s (%d)\n", p->name, p->pid);
+		p = p->next;
+		if(p == orig) break;
+	}
+}
+
 int is_pid_running(int pid)
 {
 	set_task(0);

@@ -101,6 +101,12 @@ void __malloc_bug()
 	_kill();
 }
 
+void __ps()
+{
+	tasking_print_all();
+	_kill();
+}
+
 #if defined(__cplusplus)
 extern "C" /* ha C++ compiler, akkor ez a függvény legyen C99es linkage-ű. */
 #endif
@@ -203,7 +209,7 @@ prompt:
 			if(strcmp(buffer, "help") == 0)
 			{
 				kprintf("LevOS4.0\nThis is the kernel terminal.\nDon't do anything stupid.\n");
-				kprintf("Commands available: help; reboot; read; malloc\n");
+				kprintf("Commands available: help; reboot; read; malloc; ps\n");
 			}
 			if(strcmp(buffer, "reboot") == 0)
 			{
@@ -217,6 +223,10 @@ prompt:
 			if(strcmp(buffer, "malloc") == 0)
 			{
 				START_AND_WAIT("malloc", __malloc_bug);
+			}
+			if(strcmp(buffer, "ps") == 0)
+			{
+				START_AND_WAIT("ps", __ps);
 			}
 			goto prompt;
 		}
