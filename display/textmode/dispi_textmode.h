@@ -10,7 +10,7 @@
 #define TEXTMODE_WIDTH 80
 #define TEXTMODE_HEIGHT 26
 
-extern DISPLAY textmode_init();
+extern DISPLAY *textmode_init();
 extern void textmode_puts(string s);
 extern void textmode_putc(char c);
 extern void textmode_clear();

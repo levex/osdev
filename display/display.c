@@ -6,7 +6,7 @@
 #include "../include/string.h"
 #include "../include/mutex.h"
 /* variables */
-static DISPLAY dispis[DISPLAY_MAX_DISPIS];
+static DISPLAY *dispis[DISPLAY_MAX_DISPIS];
 static uint8_t _last_register = 1;
 static uint8_t current = 0;
 
@@ -124,10 +124,10 @@ int kprintf (const char* str, ...) {
 /* interface methods */
 
 /* Registers the DISPLAY and returns its ID */
-uint8_t display_register(DISPLAY d)
+uint8_t display_register(DISPLAY *d)
 {
 	dispis[_last_register] = d;
-	dispis[_last_register].onregister();
+	dispis[_last_register]->onregister();
 	return _last_register++;
 }
 /* Sets it as current display, calling d->onset(id) to let the display
@@ -136,13 +136,13 @@ uint8_t display_setcurrent(uint8_t id)
 {
 	if(current == id) return 0;
 	current = id;
-	dispis[current].onset(id);
-	cd = &dispis[current];
+	dispis[current]->onset(id);
+	cd = dispis[current];
 	return 1;
 }
 /* returns current DISPLAY */
 DISPLAY* display_getcurrent()
 {
-	return &dispis[current];
+	return cd;
 }
 

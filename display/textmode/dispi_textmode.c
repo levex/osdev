@@ -49,7 +49,7 @@ void __textmode_onset(uint8_t id)
 	return;
 }
 
-DISPLAY textmode_init()
+DISPLAY* textmode_init()
 {
 	/* create the DISPLAY variable */
 	d.width = TEXTMODE_WIDTH;
@@ -63,7 +63,7 @@ DISPLAY textmode_init()
 	d.clear = textmode_clear;
 	d.onregister = __textmode_onregister;
 	d.onset = __textmode_onset;
-	return d;
+	return &d;
 }
 
 void textmode_clear()

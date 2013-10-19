@@ -34,9 +34,27 @@ void test_device_read(uint8_t* buffer, uint32_t offset, uint32_t len)
 {
 	len --;
 	while(len--)
-		*buffer++ = 'L';
+	{
+		switch(len%5)
+		{
+			case 0:
+				*buffer++ = 'X';
+				break;
+			case 1:
+				*buffer++ = 'E';
+				break;
+			case 2:
+				*buffer++ = 'V';
+				break;
+			case 3:
+				*buffer++ = 'E';
+				break;
+			case 4:
+				*buffer++ = 'L';
+				break;
+		}
+	}
 	*buffer = 0;
-	return len;
 }
 
 void create_test_device()
@@ -45,6 +63,7 @@ void create_test_device()
 	testdev = (device_t*)malloc(sizeof(device_t));
 	testdev->name = "/dev/levex";
 	testdev->unique_id = 0x1337;
+	testdev->dev_type = DEVICE_CHAR;
 	testdev->read = test_device_read;
 	levex_id = device_add(testdev);
 	_kill();
@@ -56,6 +75,12 @@ void __read()
 	device_t *testdev = device_get(levex_id);
 	testdev->read(buffer, 0, 32);
 	mprint("READ: %s\n", buffer);
+	_kill();
+}
+
+void __malloc_bug()
+{
+	malloc(0x1FFFFFFF);
 	_kill();
 }
 
@@ -111,10 +136,17 @@ void kernel_main()
 void late_init()
 {
 	/* From now, we are preemptible. Setup peripherials */
-	START("kbd_init", keyboard_init);
+	int pid = 0;	
+	pid = START("kbd_init", keyboard_init);
+	pid = START("devicemm", device_init);
+	pid = START("testdev", create_test_device);
+
+	/* We now wait till all the late_inits have finished */
+	while(is_pid_running(pid))schedule_noirq();
+	/* Once they are done, pass control to the kernel terminal,
+	 * so that it will (eventually) start a /init or /bin/sh
+	 */
 	START("_test", _test);
-	START("devicemm", device_init);
-	START("testdev", create_test_device);
 	/* We cannot die as we are the idle thread.
 	 * schedule away so that we don't starve others
 	 */
@@ -134,6 +166,14 @@ prompt:
 		if(!keyboard_enabled()){ schedule_noirq(); continue; }
 		c = keyboard_get_key();
 		if(!c) continue;
+		if(c == '\r')
+		{
+			disp->con.cx --;
+			disp->putc(' ');
+			disp->con.cx --;
+			buffer[loc--] = 0;
+			continue;
+		}
 		if(c == '\n')
 		{
 			disp->putc(c);
@@ -142,7 +182,7 @@ prompt:
 			if(strcmp(buffer, "help") == 0)
 			{
 				kprintf("LevOS4.0\nThis is the kernel terminal.\nDon't do anything stupid.\n");
-				kprintf("Commands available: help; reboot\n");
+				kprintf("Commands available: help; reboot; read; malloc\n");
 			}
 			if(strcmp(buffer, "reboot") == 0)
 			{
@@ -152,6 +192,10 @@ prompt:
 			{
 				int pid = START("read", __read);
 				while(is_pid_running(pid))schedule_noirq();
+			}
+			if(strcmp(buffer, "malloc") == 0)
+			{
+				START_AND_WAIT("malloc", __malloc_bug);
 			}
 			goto prompt;
 		}

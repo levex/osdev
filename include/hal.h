@@ -24,6 +24,9 @@
 
 #define START(name, addr) addProcess(createProcess(name, addr));
 
+#define START_AND_WAIT(name, addr) int __pid_name = START(name, addr); \
+				while(is_pid_running(__pid_name))schedule_noirq();
+
 extern void hal_init();
 
 extern void send_eoi(uint8_t irq);
