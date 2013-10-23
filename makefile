@@ -7,11 +7,12 @@ start:
 
 assembly:
 	i586-elf-as boot.s -o boot.o
+	i586-elf-as v86.s -o v86.o
 
 bkernel:
 	if [[ -e "objs.txt" ]]; then rm objs.txt; fi;
 	i586-elf-gcc -c main.c -o kernel.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
-	echo -n "boot.o kernel.o " >> objs.txt
+	echo -n "boot.o kernel.o v86.o " >> objs.txt
 	cd display && $(MAKE) $(MFLAGS)
 	cd lib && $(MAKE) $(MFLAGS)
 	cd memory && $(MAKE) $(MFLAGS)

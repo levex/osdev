@@ -19,6 +19,7 @@
 #include "include/keyboard.h"
 #include "include/device.h"
 #include "include/rtc.h"
+#include "include/x86/v86.h"
 
 static DISPLAY* disp = 0;
 
@@ -144,7 +145,7 @@ void __read()
 	uint8_t* buffer = (uint8_t*)malloc(32);
 	device_t *testdev = device_get(levex_id);
 	testdev->read(buffer, 0, 32);
-	mprint("READ: %s\n", buffer);
+	kprintf("%s\n", buffer);
 	_kill();
 }
 
@@ -158,6 +159,12 @@ void __ps()
 {
 	tasking_print_all();
 	_kill();
+}
+
+void sig_test()
+{
+	asm volatile("movl $0, %eax\n"
+				"idiv %eax");
 }
 
 #if defined(__cplusplus)
@@ -183,6 +190,7 @@ void kernel_main()
 	gdt_init();
 	/* Now, we have the GDT setup, let's load the IDT as well */
 	idt_init();
+	exceptions_init();
 	/* Next step, setup PIT. */
 	hal_init();
 	pic_init();
@@ -264,7 +272,7 @@ prompt:
 			if(strcmp(buffer, "help") == 0)
 			{
 				kprintf("LevOS4.0\nThis is the kernel terminal.\nDon't do anything stupid.\n");
-				kprintf("Commands available: help; reboot; read; malloc; ps\n");
+				kprintf("Commands available: help; reboot; read; malloc; ps\nclear; reset; time\n");
 			}
 			if(strcmp(buffer, "reboot") == 0)
 			{
@@ -272,8 +280,7 @@ prompt:
 			}
 			if(strcmp(buffer, "read") == 0)
 			{
-				int pid = START("read", __read);
-				while(is_pid_running(pid))schedule_noirq();
+				START_AND_WAIT("read", __read);
 			}
 			if(strcmp(buffer, "malloc") == 0)
 			{
@@ -286,6 +293,19 @@ prompt:
 			if(strcmp(buffer, "time") == 0)
 			{
 				START_AND_WAIT("time", rtc_print_time_as_proc);
+			}
+			if(strcmp(buffer, "clear") == 0 || strcmp(buffer, "reset") == 0)
+			{
+				disp->clear();
+			}
+			if(strcmp(buffer, "v") == 0)
+			{
+				START_AND_WAIT("sig_test", sig_test);
+			}
+			if(strcmp(buffer, "kill") == 0)
+			{
+				kill(5);
+				while(is_pid_running(5)) {schedule_noirq(); continue;}
 			}
 			goto prompt;
 		}

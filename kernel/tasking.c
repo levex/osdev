@@ -4,6 +4,7 @@
 #include "../include/pit.h"
 #include "../include/tasking.h"
 #include "../include/memory.h"
+#include "../include/signal.h"
 
 #include <stdint.h>
 
@@ -39,6 +40,39 @@ void idle_thread()
 void kill(uint32_t pid)
 {
 	if(pid == 1) panic("Idle can't be killed!\n");
+	if(pid == c->pid) _kill();
+	PROCESS* orig = c;
+	PROCESS* p = orig;
+	while(1)
+	{
+		if(p->pid == pid) {
+			mprint("Process %s (%d) was set to ZOMBIE.\n", p->name, pid);
+			p->state = PROCESS_STATE_ZOMBIE;
+			break;
+		}
+		p = p->next;
+		if(p == orig) break;
+	}
+}
+
+void send_sig(int sig)
+{
+	c->notify(sig);
+}
+
+int is_tasking()
+{
+	return __enabled;
+}
+
+char* p_name()
+{
+	return c->name;
+}
+
+int p_pid()
+{
+	return c->pid;
 }
 
 void _kill()
@@ -52,15 +86,65 @@ void _kill()
 	schedule_noirq();
 }
 
+/* Let me introduce you to Jack, the ripper.
+ * His job is to hunt down and kill zombie processes.
+ * He is powerful, don't mess with him! :-)
+ */
+
+void jack_the_ripper()
+{
+	reset:;
+	PROCESS *orig = c;
+	PROCESS *p = orig;
+	while(1)
+	{
+		p = p->next;
+		if(p == c) { continue;}
+		if(p->state == PROCESS_STATE_ZOMBIE)
+		{
+			set_task(0);
+			p->prev->next = p->next;
+			p->next->prev = p->prev;
+			set_task(1);
+			mprint("Jack killed %s (%d). One less zombie.\n", p->name, p->pid);
+		}
+		if(p == orig) goto reset;
+		schedule_noirq();
+	}
+}
+
 void tasking_print_all()
 {
 	PROCESS *orig = c;
 	PROCESS *p = orig;
 	while(1)
 	{
-		kprintf("Process: %s (%d)\n", p->name, p->pid);
+		kprintf("Process: %s (%d) %s\n", p->name, p->pid,
+			p->state == PROCESS_STATE_ZOMBIE?"ZOMBIE":
+					p->state==PROCESS_STATE_ALIVE?"ALIVE":"DEAD");
 		p = p->next;
 		if(p == orig) break;
+	}
+}
+
+void __notified(int sig)
+{
+
+	switch(sig)
+	{
+		case SIG_ILL:
+			pidprint("Received SIGILL, terminating!\n");
+			_kill();
+			break;
+		case SIG_TERM:
+			pidprint("Received SIGTERM, terminating!\n");
+			_kill();
+		case SIG_SEGV:
+			pidprint("Received SIGSEGV, terminating!\n");
+			_kill();
+		default:
+			pidprint("Received unknown SIG!\n");
+			return;
 	}
 }
 
@@ -87,6 +171,8 @@ PROCESS* createProcess(char* name, uint32_t addr)
 	p->name = name;
 	p->pid = ++lpid;
 	p->eip = addr;
+	p->state = PROCESS_STATE_ALIVE;
+	p->notify = __notified;
 	p->esp = (uint32_t)malloc(4096);
 	uint32_t* stack = p->esp + 4096;
 	*--stack = 0x00000202; // eflags
@@ -153,6 +239,7 @@ void schedule_noirq()
 
 void schedule()
 {
+	//asm volatile("add $0xc, %esp");
 	asm volatile("push %eax");
 	asm volatile("push %ebx");
 	asm volatile("push %ecx");
@@ -189,6 +276,7 @@ void tasking_init()
 	c->next = c;
 	c->prev = c;
 	__addProcess(createProcess("task1", (uint32_t)task1));
+	__addProcess(createProcess("Jack", (uint32_t)jack_the_ripper));
 	/*__addProcess(createProcess("task2", (uint32_t)task2));
 	__addProcess(createProcess("task3", (uint32_t)task3));*/
 	__exec();
