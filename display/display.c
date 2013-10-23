@@ -106,7 +106,7 @@ void __kprintf_va_list(char* str, va_list ap)
 				case 'x': {
 					int c = va_arg(ap, int);
 					char str[32]= {0};
-					__itoa_s(c, 16, str);
+					__itoa(c, 16, str);
 					cd->puts(str);
 					i++;
 					continue;

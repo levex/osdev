@@ -20,6 +20,8 @@
 #include "include/device.h"
 #include "include/rtc.h"
 #include "include/x86/v86.h"
+#include "include/floppy.h"
+#include "include/ext2.h"
 
 static DISPLAY* disp = 0;
 
@@ -224,8 +226,10 @@ void late_init()
 	pid = START("kbd_init", keyboard_init);
 	pid = START("cursor_update", __cursor_updater);
 	pid = START("devicemm", device_init);
+	while(is_pid_running(pid))schedule_noirq();
 	pid = START("testdev", create_test_device);
 	pid = START("rtc_init", rtc_init);
+	pid = START("fdc_init", fdc_init);
 
 	/* We now wait till all the late_inits have finished */
 	while(is_pid_running(pid))schedule_noirq();
@@ -306,6 +310,17 @@ prompt:
 			{
 				kill(5);
 				while(is_pid_running(5)) {schedule_noirq(); continue;}
+			}
+			if(strcmp(buffer, "fl") == 0)
+			{
+				device_t *dev = device_get_by_id(19);
+				if(!dev || !(dev->unique_id))
+				{
+					kprintf("No device to mount ext2 on!\n");
+					goto prompt;
+				}
+				kprintf("Mounting on %s (%d)\n", dev->name, dev->unique_id);
+				ext2_probe(dev);
 			}
 			goto prompt;
 		}

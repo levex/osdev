@@ -1,8 +1,13 @@
 compile: assembly bkernel link
 all: assembly bkernel link start
 
+mount:
+	echo "Mounting fda.img as /mnt/floppy..."
+	sudo mount -o loop fda.img /mnt/floppy
+	echo "Done."
+
 start:
-	qemu -kernel levos.bin -monitor /dev/stdout
+	qemu -kernel levos.bin -fda fda.img -monitor /dev/stdout
 	reset
 
 assembly:
@@ -19,6 +24,7 @@ bkernel:
 	cd arch && $(MAKE) $(MFLAGS)
 	cd kernel && $(MAKE) $(MFLAGS)
 	cd drivers && $(MAKE) $(MFLAGS)
+	cd fs && $(MAKE) $(MFLAGS)
 
 objs = `cat objs.txt`
 link:
