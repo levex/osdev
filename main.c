@@ -359,7 +359,7 @@ prompt:
 						goto prompt;
 					} else {
 						str_backspace(wd, '/');
-						//str_backspace(wd, '/');
+						prompt_size = strlen(username) + strlen(hostname) + 4 + strlen(wd);
 						goto prompt;
 					}
 				}
