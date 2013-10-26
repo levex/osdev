@@ -39,7 +39,29 @@ void ext2_read_inode(inode_t *inode_buf, uint32_t inode, device_t *dev, ext2_pri
 
 inode_t *inode = 0;
 char *root_buf = 0;
-void ext2_read_root_directory(char *filename, device_t *dev, ext2_priv_data *priv)
+uint8_t ext2_read_directory(char *filename, ext2_dir *dir, device_t *dev, ext2_priv_data *priv)
+{
+	while(dir->inode != 0) {
+		char *name = (char *)malloc(dir->namelength + 1);
+		memcpy(name, &dir->reserved+1, dir->namelength);
+		name[dir->namelength] = 0;
+		if(filename && strcmp(filename, name) == 0)
+		{
+			/* If we are looking for a file, we had found it */
+			ext2_read_inode(inode, dir->inode, dev, priv);
+			mprint("Found inode %s! %d\n", filename, dir->inode);
+			return 1;
+		}
+		if(!filename && filename != 1) {
+			//mprint("Found dir entry: %s to inode %d \n", name, dir->inode);
+			kprintf("%s\n", name);
+		}
+		dir = (ext2_dir *)((uint32_t)dir + dir->size);
+	}
+	return 0;
+}
+
+uint8_t ext2_read_root_directory(char *filename, device_t *dev, ext2_priv_data *priv)
 {
 	/* The root directory is always inode#2, so find BG and read the block. */
 	if(!inode) inode = (inode_t *)malloc(sizeof(inode_t));
@@ -48,7 +70,7 @@ void ext2_read_root_directory(char *filename, device_t *dev, ext2_priv_data *pri
 	if((inode->type & 0xF000) != INODE_TYPE_DIRECTORY)
 	{
 		mprint("FATAL: Root directory is not a directory!\n");
-		return;
+		return 0;
 	}
 	/* We have found the directory!
 	 * Now, load the starting block
@@ -59,44 +81,95 @@ void ext2_read_root_directory(char *filename, device_t *dev, ext2_priv_data *pri
 		if(b == 0) break;
 		ext2_read_block(root_buf, b, dev, priv);
 		/* Now loop through the entries of the directory */
-		ext2_dir *dir = (ext2_dir *)root_buf;
-		while(dir->inode != 0) {
-			char *name = (char *)malloc(dir->namelength + 1);
-			memcpy(name, &dir->reserved+1, dir->namelength);
-			name[dir->namelength] = 0;
-			if(filename && strcmp(filename, name) == 0)
+		if(ext2_read_directory(filename, (ext2_dir*)root_buf, dev, priv)) return 1;
+	}
+	if(filename && filename != 1) return 0;
+	return 1;
+}
+
+uint8_t ext2_find_file_inode(char *ff, inode_t *inode_buf, device_t *dev, ext2_priv_data *priv)
+{
+	char *filename = malloc(strlen(ff) + 1);
+	memcpy(filename, ff, strlen(ff) +1);
+	size_t n = strsplit(filename, '/');
+	filename ++; // skip the first crap
+	if(n > 1)
+	{ 
+		/* Read inode#2 (Root dir) into inode */
+		ext2_read_inode(inode, 2, dev, priv);
+		/* Now, loop through the DPB's and see if it contains this filename */
+		n--;
+		while(n--)
+		{
+			mprint("Looking for: %s\n", filename);
+			for(int i = 0; i < 12; i++)
 			{
-				/* If we are looking for a file, we had found it */
-				ext2_read_inode(inode, dir->inode, dev, priv);
-				mprint("Found inode! %d\n", dir->inode);
-				return;
+				uint32_t b = *(uint32_t*)(&inode->dbp0 + i*4);
+				if(!b) break;
+				ext2_read_block(root_buf, b, dev, priv);
+				if(!ext2_read_directory(filename, root_buf, dev, priv))
+				{
+					mprint("File not found!\n");
+					return 0;
+				} else {
+					/* inode now contains that inode
+					 * get out of the for loop and continue traversing
+					 */
+					 goto fix;
+				}
 			}
-			if(!filename) mprint("Found dir entry: %s to inode %d \n", name, dir->inode);
-			dir = (ext2_dir *)((uint32_t)dir + dir->size);
+			fix:;
+			uint32_t s = strlen(filename);
+			filename += s + 1;
 		}
+		memcpy(inode_buf, inode, sizeof(inode_t));
+	} else {
+		/* This means the file is in the root directory */
+		ext2_read_root_directory(filename, dev, priv);
+		memcpy(inode_buf, inode, sizeof(inode_t));
+	}
+	return 1;
+}
+
+void ext2_list_directory(char *dd, char *buffer, device_t *dev, ext2_priv_data *priv)
+{
+	char *dir = dd;
+	ext2_find_file_inode(dir, buffer, dev, priv);
+	for(int i = 0;i < 12; i++)
+	{
+		uint32_t b = *(uint32_t *)(&inode->dbp0 + i*4);
+		if(!b) break;
+		ext2_read_block(root_buf, b, dev, priv);
+		ext2_read_directory(0, root_buf, dev, priv);
 	}
 }
 
-void ext2_find_file_inode(char *filename, inode_t *inode_buf, device_t *dev, ext2_priv_data *priv)
-{
-	/* read the root dir for the inode */
-	ext2_read_root_directory(filename, dev, priv);
-	memcpy(inode_buf, inode, sizeof(inode_t));
-}
-
-void ext2_read_file(char *filename, char *buffer, device_t *dev, ext2_priv_data *priv)
+uint8_t ext2_read_file(char *fn, char *buffer, device_t *dev, ext2_priv_data *priv)
 {
 	/* Put the file's inode to the buffer */
-	ext2_find_file_inode(filename, buffer, dev, priv);
-	inode_t *minode = (inode_t *)buffer;
-	for(int i = 0; i < 12; i++)
+	char *filename = fn;
+	if(!ext2_find_file_inode(filename, buffer, dev, priv))
 	{
-		uint32_t b = *(uint32_t*)(&minode->dbp0 + i*4);
-		if(b == 0) break;
-		mprint("Reading block: %d\n", b);
-		ext2_read_block(root_buf, b, dev, priv);
-		memcpy(buffer + i*priv->blocksize, root_buf, priv->blocksize);
+		return 0;
 	}
+	if(buffer)
+	{
+		inode_t *minode = (inode_t *)buffer;
+		for(int i = 0; i < 12; i++)
+		{
+			uint32_t b = *(uint32_t*)(&minode->dbp0 + i*4);
+			if(b == 0) break;
+			mprint("Reading block: %d\n", b);
+			ext2_read_block(root_buf, b, dev, priv);
+			memcpy(buffer + i*priv->blocksize, root_buf, priv->blocksize);
+		}
+	}
+	return 1;
+}
+
+uint8_t ext2_exist(char *file, device_t *dev, ext2_priv_data *priv)
+{
+	return ext2_read_file(file, 0, dev, priv);
 }
 
 uint8_t ext2_probe(device_t *dev)
@@ -106,7 +179,7 @@ uint8_t ext2_probe(device_t *dev)
 	if(!dev->read)
 	{
 		kprintf("Device has no read, skipped.\n");
-		return;
+		return 0;
 	}
 	char *buf = (char *)malloc(512);
 	dev->read(buf, 2, 1);
@@ -142,13 +215,22 @@ uint8_t ext2_probe(device_t *dev)
 	ext2_read_block(buffer, block_bgdt, dev, priv);
 	block_group_desc_t *bgd = (block_group_desc_t *)buffer;
 	priv->first_bgd = block_bgdt;
-	ext2_read_root_directory(0, dev, priv);
-	char *levex = (char *)malloc(4096);
-	ext2_read_file("levex.txt", levex, dev, priv);
-	kprintf("%s\n", levex);
 	fs->name = "EXT2";
 	fs->probe = ext2_probe;
-	fs->priv_data = priv;
+	fs->mount = ext2_mount;
+	fs->read = ext2_read_file;
+	fs->exist = ext2_exist;
+	fs->read_dir = ext2_list_directory;
+	fs->priv_data = (void *)priv;
 	dev->fs = fs;
+	mprint("Device %s (%d) is with EXT2 filesystem. Probe successful.\n", dev->name, dev->unique_id);
 	return 1;
+}
+uint8_t ext2_mount(device_t *dev, void *privd)
+{
+	mprint("Mounting ext2 on device %s (%d)\n", dev->name, dev->unique_id);
+	ext2_priv_data *priv = privd;
+	if(ext2_read_root_directory(1, dev, priv))
+		return 1;
+	return 0;
 }

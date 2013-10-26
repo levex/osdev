@@ -8,7 +8,7 @@
 
 MODULE("DEV");
 
-device_t* devices = 0;
+device_t *devices = 0;
 uint8_t lastid = 0;
 
 void device_init()

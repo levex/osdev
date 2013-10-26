@@ -71,6 +71,9 @@ enum KEYCODE {
 	M_PRESSED = 0x32,
 	M_RELEASED = 0xB2,
 
+	POINT_PRESSED = 0x34,
+	POINT_RELEASED = 0xB4,
+
 	BACKSPACE_PRESSED = 0xE,
 	BACKSPACE_RELEASED = 0x8E,
 	SPACE_PRESSED = 0x39,
@@ -133,6 +136,7 @@ uint8_t keyboard_to_ascii(uint8_t key)
 	if(key == 0x1C) return '\n';
 	if(key == 0x39) return ' ';
 	if(key == 0xE) return '\r';
+	if(key == POINT_RELEASED) return '.';
 	if(key >= 0x10 && key <= 0x1C)
 	{
 		return _qwertzuiop[key - 0x10];

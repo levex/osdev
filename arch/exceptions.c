@@ -141,8 +141,6 @@ void exc_pf(uint32_t cs, uint32_t eflags, uint32_t eip)
 {
 	int cr2 = 0;
 	kprintf("Page fault in %s (%d)\n",p_name(), p_pid());
-	set_task(0);
-	for(;;);
 	if(is_tasking()) {
 		kprintf("Notifying process %s (%d) with SIGTERM\n", p_name(), p_pid());
 		send_sig(SIG_TERM);

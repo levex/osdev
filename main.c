@@ -22,6 +22,8 @@
 #include "include/x86/v86.h"
 #include "include/floppy.h"
 #include "include/ext2.h"
+#include "include/ata.h"
+#include "include/vfs.h"
 
 static DISPLAY* disp = 0;
 
@@ -224,11 +226,13 @@ void late_init()
 	/* From now, we are preemptible. Setup peripherials */
 	int pid = 0;	
 	pid = START("kbd_init", keyboard_init);
+	pid = START("vfs_init", vfs_init);
 	pid = START("cursor_update", __cursor_updater);
 	pid = START("devicemm", device_init);
 	while(is_pid_running(pid))schedule_noirq();
 	pid = START("testdev", create_test_device);
 	pid = START("rtc_init", rtc_init);
+	pid = START("ata_init", ata_init);
 	pid = START("fdc_init", fdc_init);
 
 	/* We now wait till all the late_inits have finished */
@@ -237,24 +241,35 @@ void late_init()
 	 * so that it will (eventually) start a /init or /bin/sh
 	 */
 	START_AND_WAIT("login", __login);
-	START("_test", _test);
 	/* We cannot die as we are the idle thread.
 	 * schedule away so that we don't starve others
 	 */
-	while(1) schedule_noirq();
+	while(1) {
+		START_AND_WAIT("_test", _test);
+		kerror("\n\nThe terminal has crashed. Restarting it...\n\n");
+	}
 	panic("Reached end of late_init()\n");
 }
 static char c = 0;
 static char* buffer = 0;
 static uint16_t loc = 0;
+static char *wd = 0;
+static int root_mounted = 0;
+static char *ls_buffer = 0;
 void _test()
 {
 	buffer = (char*)malloc(256);
+	ls_buffer = (char *)malloc(1024);
+	char *file_buf = (char *)malloc(512);
 	char* prompt = "(kernel) $ ";
 	uint8_t prompt_size = strlen(prompt);
 	kprintf("Welcome to LevOS 4.0\nThis is a very basic terminal.\nDon't do anything stupid.\n");
 prompt:
-	kprintf(prompt);
+	if(!root_mounted)
+		kprintf(prompt);
+	else
+		kprintf("%s@%s:%s$ ", username, hostname, wd);
+	memset(buffer, 0, 256);
 	while(1) {
 		if(!keyboard_enabled()){ schedule_noirq(); continue; }
 		c = keyboard_get_key();
@@ -273,6 +288,7 @@ prompt:
 			disp->putc(c);
 			buffer[loc] = 0;
 			loc = 0;
+			uint32_t n = strsplit(buffer, ' ');
 			if(strcmp(buffer, "help") == 0)
 			{
 				kprintf("LevOS4.0\nThis is the kernel terminal.\nDon't do anything stupid.\n");
@@ -304,23 +320,79 @@ prompt:
 			}
 			if(strcmp(buffer, "v") == 0)
 			{
-				START_AND_WAIT("sig_test", sig_test);
+				char* _t = "/home/levex/text/levex.txt";
+				size_t n = strsplit(_t, '/');
+				_t++;
+				while(n--)
+				{
+					uint32_t s = strlen(_t);
+					kprintf("%d (%d): %s\n", n, s, _t);
+					_t += s + 1;
+				}
 			}
 			if(strcmp(buffer, "kill") == 0)
 			{
 				kill(5);
 				while(is_pid_running(5)) {schedule_noirq(); continue;}
 			}
+			if(strcmp(buffer, "ls") == 0)
+			{
+				if(!vfs_ls(wd, ls_buffer))
+				{
+					kprintf("Error.\n");
+					goto prompt;
+				}
+			}
+			if(strcmp(buffer, "cd") == 0)
+			{
+				if(!n || n == 1)
+				{
+					kprintf("FATAL: no parameter.\n");
+					goto prompt;
+				}
+				char *arg = (char *)(buffer + strlen(buffer) + 1);
+				if(strcmp(arg, ".") == 0) goto prompt;
+				if(strcmp(arg, "..") == 0)
+				{
+					if(strlen(wd) == 1)
+					{
+						goto prompt;
+					} else {
+						str_backspace(wd, '/');
+						//str_backspace(wd, '/');
+						goto prompt;
+					}
+				}
+				if(vfs_exist_in_dir(wd, arg))
+				{
+					size_t size = strlen(wd) + strlen(arg) + 2;
+					char *_w = malloc(size);
+					memset(_w, 0, size);
+					memcpy(_w, wd, strlen(wd));
+					memcpy(_w + strlen(wd), arg, strlen(arg));
+					memcpy(_w + strlen(_w), "/\0", 2);
+					memcpy(wd, _w, strlen(_w) + 1);
+					prompt_size = strlen(username) + strlen(hostname) + 4 + strlen(wd);
+				}
+			}
 			if(strcmp(buffer, "fl") == 0)
 			{
 				device_t *dev = device_get_by_id(19);
-				if(!dev || !(dev->unique_id))
-				{
-					kprintf("No device to mount ext2 on!\n");
-					goto prompt;
+				if(device_try_to_mount(dev, "/")) {
+					kprintf("Mounted / on %s (%d) with %s\n", dev->name, dev->unique_id, dev->fs->name);
+					root_mounted = 1;
+					wd = "/";
+					prompt_size = strlen(username) + strlen(hostname) + 4 + strlen(wd);
 				}
-				kprintf("Mounting on %s (%d)\n", dev->name, dev->unique_id);
-				ext2_probe(dev);
+				else kprintf("Unable to mount / on %s (%d)!\n", dev->name, dev->unique_id);
+
+			}
+			if(strcmp(buffer, "lev") == 0)
+			{
+				if(vfs_read("/etc/test/omg/levex.txt", file_buf)) {
+					kprintf("read: %s\n", file_buf);
+					memset(file_buf, 0, 512);
+				} else kprintf("Unable to read /levex.txt!\n");
 			}
 			goto prompt;
 		}

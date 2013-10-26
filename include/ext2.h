@@ -106,5 +106,5 @@ typedef struct __ext2_priv_data {
 } __attribute__((packed)) ext2_priv_data;
 
 extern uint8_t ext2_probe(device_t* dev);
-
+extern uint8_t ext2_mount(device_t *dev, void *priv);
 #endif
