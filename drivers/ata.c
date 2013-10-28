@@ -10,8 +10,11 @@
 
 MODULE("ATA");
 
+
+uint8_t ata_detect();
+
 void ata_init()
 {
-	mprint("Checking for ATA drivers\n");
+	mprint("Checking for ATA drives\n");
 	_kill();
 }

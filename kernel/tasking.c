@@ -80,6 +80,8 @@ void _kill()
 	if(c->pid == 1) { set_task(0); panic("Idle can't be killed!"); }
 	mprint("Killing process %s (%d)\n", c->name, c->pid);
 	set_task(0);
+	free(c->stacktop);
+	free(c);
 	c->prev->next = c->next;
 	c->next->prev = c->prev;
 	set_task(1);
@@ -105,6 +107,8 @@ void jack_the_ripper()
 			set_task(0);
 			p->prev->next = p->next;
 			p->next->prev = p->prev;
+			free(p->stacktop);
+			free(p);
 			set_task(1);
 			mprint("Jack killed %s (%d). One less zombie.\n", p->name, p->pid);
 		}
@@ -175,6 +179,7 @@ PROCESS* createProcess(char* name, uint32_t addr)
 	p->notify = __notified;
 	p->esp = (uint32_t)malloc(4096);
 	uint32_t* stack = p->esp + 4096;
+	p->stacktop = p->esp;
 	*--stack = 0x00000202; // eflags
 	*--stack = 0x8; // cs
 	*--stack = (uint32_t)addr; // eip

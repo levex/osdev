@@ -27,6 +27,8 @@ extern uint8_t vfs_exist_in_dir(char *wd, char* fn);
 
 extern void vfs_init();
 
+extern uint8_t list_mount();
+
 extern uint8_t device_try_to_mount(struct __device_t *dev, char *location);
 
 #endif

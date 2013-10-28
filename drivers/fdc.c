@@ -294,6 +294,58 @@ uint8_t flpy_read(uint8_t* buffer, uint32_t lba, uint32_t sectors)
 	return 0;
 }
 
+uint8_t flpy_write_lba(uint8_t *buf, uint32_t lba)
+{
+	int head = 0, track = 0, sector = 1;
+	__lba_to_chs(lba, &head, &track, &sector);
+	fdc_set_motor(0, 1);
+	int rc = fdc_seek(track, head);
+	if(rc)
+	{
+		mprint("Failed to seek for write!\n");
+		return 0;
+	}
+
+	memcpy(DMA_BUFFER, buf, 512);
+
+	uint32_t st0, cy1;
+
+	fdc_dma_init(DMA_BUFFER, 512);
+	dma_set_write(FDC_DMA_CHANNEL);
+	__write_cmd(FDC_CMD_WRITE_SECT|FDC_CMD_EXT_MULTITRACK|FDC_CMD_EXT_SKIP|FDC_CMD_EXT_DENSITY);
+	__write_cmd((head << 2)| 0);
+	__write_cmd(track);
+	__write_cmd(head);
+	__write_cmd(sector);
+	__write_cmd(FLPYDSK_SECTOR_DTL_512);
+	__write_cmd( ((sector+1)>=FLPY_SECTORS_PER_TRACK)?FLPY_SECTORS_PER_TRACK:(sector+1));
+	__write_cmd(FLPYDSK_GAP3_LENGTH_3_5);
+	__write_cmd(0xff);
+
+	if(!__wait_for_irq())
+	{
+		mprint("FATAL: IRQ link offline! %s\n", __func__);
+		return 1;
+	}
+	for(int j = 0; j < 7; j++)
+		__read_data();
+
+	fdc_check_int(&st0, &cy1);
+	return 1;
+
+}
+
+uint8_t flpy_write(uint8_t *buffer, uint32_t lba, uint32_t sectors)
+{
+	if(!sectors) return 0;
+	uint32_t sectors_wrote = 0;
+	while(sectors_wrote != sectors)
+	{
+		if(!flpy_write_lba(buffer + sectors_wrote * 512, lba + sectors_wrote)) return 1;
+		sectors_wrote++;
+	}
+}
+
 void fdc_reset()
 {
 	fdc_disable_controller();
@@ -320,6 +372,7 @@ void fdc_reset()
 	floppy->unique_id = 0x13;
 	floppy->dev_type = DEVICE_BLOCK;
 	floppy->read = flpy_read;
+	floppy->write = flpy_write;
 	device_add(floppy);
 }
 

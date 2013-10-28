@@ -22,8 +22,10 @@
 #include "include/x86/v86.h"
 #include "include/floppy.h"
 #include "include/ext2.h"
+#include "include/proc.h"
 #include "include/ata.h"
 #include "include/vfs.h"
+#include "include/proc.h"
 
 static DISPLAY* disp = 0;
 
@@ -221,13 +223,14 @@ void kernel_main()
 /* This function is ought to setup peripherials and such,
  * while also starting somekind of /bin/sh
  */
+ int cu_pid = 0;
 void late_init()
 {
 	/* From now, we are preemptible. Setup peripherials */
 	int pid = 0;	
 	pid = START("kbd_init", keyboard_init);
 	pid = START("vfs_init", vfs_init);
-	pid = START("cursor_update", __cursor_updater);
+	cu_pid = START("cursor_update", __cursor_updater);
 	pid = START("devicemm", device_init);
 	while(is_pid_running(pid))schedule_noirq();
 	pid = START("testdev", create_test_device);
@@ -261,6 +264,7 @@ void _test()
 	buffer = (char*)malloc(256);
 	ls_buffer = (char *)malloc(1024);
 	char *file_buf = (char *)malloc(512);
+	uint8_t *write_buf = malloc(512);
 	char* prompt = "(kernel) $ ";
 	uint8_t prompt_size = strlen(prompt);
 	kprintf("Welcome to LevOS 4.0\nThis is a very basic terminal.\nDon't do anything stupid.\n");
@@ -292,7 +296,8 @@ prompt:
 			if(strcmp(buffer, "help") == 0)
 			{
 				kprintf("LevOS4.0\nThis is the kernel terminal.\nDon't do anything stupid.\n");
-				kprintf("Commands available: help; reboot; read; malloc; ps\nclear; reset; time\n");
+				kprintf("Commands available: help; reboot; read; malloc; ps; fl; cd; ls\n"
+						"clear; reset; time; v; kill\n");
 			}
 			if(strcmp(buffer, "reboot") == 0)
 			{
@@ -304,7 +309,36 @@ prompt:
 			}
 			if(strcmp(buffer, "malloc") == 0)
 			{
-				START_AND_WAIT("malloc", __malloc_bug);
+				uint8_t *mem = malloc(1337);
+				free(mem);
+				mem = malloc(1337);
+			}
+			if(strcmp(buffer, "mount") == 0)
+			{
+				list_mount();
+				//kprintf("wd=0x%x", wd);
+			}
+			if(strcmp(buffer, "uname") == 0)
+			{
+				if(!root_mounted)
+					goto prompt;
+				vfs_read("/proc/os/full", file_buf);
+				kprintf("%s\n", file_buf);
+				memset(file_buf, 0, 512);
+			}
+			if(strcmp(buffer, "cat") == 0)
+			{
+				if(!n || n == 1)
+				{
+					kprintf("FATAL: no parameter.\n");
+					goto prompt;
+				}
+				char *arg = (char *)(buffer + strlen(buffer) + 1);
+				memset(file_buf, 0, 512);
+				if(vfs_read(arg, file_buf))
+				{
+					kprintf("%s\n", file_buf);
+				} else kprintf("File not found.\n");
 			}
 			if(strcmp(buffer, "ps") == 0)
 			{
@@ -332,19 +366,33 @@ prompt:
 			}
 			if(strcmp(buffer, "kill") == 0)
 			{
-				kill(5);
-				while(is_pid_running(5)) {schedule_noirq(); continue;}
+				kill(cu_pid);
+				while(is_pid_running(cu_pid)) {schedule_noirq(); continue;}
 			}
 			if(strcmp(buffer, "ls") == 0)
 			{
+				if(!root_mounted)
+				{
+					kprintf("FATAL: No root directory. Mount with 'fl'.\n");
+					goto prompt;
+				}
 				if(!vfs_ls(wd, ls_buffer))
 				{
 					kprintf("Error.\n");
 					goto prompt;
 				}
 			}
+			if(strcmp(buffer, "mem") == 0)
+			{
+				mm_print_out();
+			}
 			if(strcmp(buffer, "cd") == 0)
 			{
+				if(!root_mounted)
+				{
+					kprintf("FATAL: No root directory. Mount with 'fl'.\n");
+					goto prompt;
+				}
 				if(!n || n == 1)
 				{
 					kprintf("FATAL: no parameter.\n");
@@ -372,6 +420,7 @@ prompt:
 					memcpy(_w + strlen(wd), arg, strlen(arg));
 					memcpy(_w + strlen(_w), "/\0", 2);
 					memcpy(wd, _w, strlen(_w) + 1);
+					free(_w);
 					prompt_size = strlen(username) + strlen(hostname) + 4 + strlen(wd);
 				}
 			}
@@ -381,11 +430,24 @@ prompt:
 				if(device_try_to_mount(dev, "/")) {
 					kprintf("Mounted / on %s (%d) with %s\n", dev->name, dev->unique_id, dev->fs->name);
 					root_mounted = 1;
-					wd = "/";
+					wd = malloc(512);
+					memcpy(wd, "/", 2);
 					prompt_size = strlen(username) + strlen(hostname) + 4 + strlen(wd);
+					START_AND_WAIT("proc_init", proc_init);
 				}
 				else kprintf("Unable to mount / on %s (%d)!\n", dev->name, dev->unique_id);
 
+			}
+			if(strcmp(buffer, "write") == 0)
+			{
+				device_t *dev = device_get_by_id(19);
+				if(!dev)
+					goto prompt;
+				memset(write_buf, 0, 512);
+				write_buf[0] = 0x37;
+				write_buf[1] = 0x13;
+				dev->write(write_buf, 0, 1);
+				kprintf("Wrote 0x1337 to first two bytes of the floppy.\n");
 			}
 			if(strcmp(buffer, "lev") == 0)
 			{

@@ -50,6 +50,7 @@ uint8_t ext2_read_directory(char *filename, ext2_dir *dir, device_t *dev, ext2_p
 			/* If we are looking for a file, we had found it */
 			ext2_read_inode(inode, dir->inode, dev, priv);
 			mprint("Found inode %s! %d\n", filename, dir->inode);
+			free(name);
 			return 1;
 		}
 		if(!filename && filename != 1) {
@@ -57,6 +58,7 @@ uint8_t ext2_read_directory(char *filename, ext2_dir *dir, device_t *dev, ext2_p
 			kprintf("%s\n", name);
 		}
 		dir = (ext2_dir *)((uint32_t)dir + dir->size);
+		free(name);
 	}
 	return 0;
 }
@@ -109,7 +111,13 @@ uint8_t ext2_find_file_inode(char *ff, inode_t *inode_buf, device_t *dev, ext2_p
 				ext2_read_block(root_buf, b, dev, priv);
 				if(!ext2_read_directory(filename, root_buf, dev, priv))
 				{
-					mprint("File not found!\n");
+					if(strcmp(filename, "") == 0)
+					{
+						free(filename);
+						return 1;
+					}
+					mprint("File (%s (0x%x)) not found!\n", filename, filename);
+					free(filename);
 					return 0;
 				} else {
 					/* inode now contains that inode
@@ -128,13 +136,15 @@ uint8_t ext2_find_file_inode(char *ff, inode_t *inode_buf, device_t *dev, ext2_p
 		ext2_read_root_directory(filename, dev, priv);
 		memcpy(inode_buf, inode, sizeof(inode_t));
 	}
+	free(filename);
 	return 1;
 }
 
 void ext2_list_directory(char *dd, char *buffer, device_t *dev, ext2_priv_data *priv)
 {
 	char *dir = dd;
-	ext2_find_file_inode(dir, buffer, dev, priv);
+	int rc = ext2_find_file_inode(dir, buffer, dev, priv);
+	if(!rc) return;
 	for(int i = 0;i < 12; i++)
 	{
 		uint32_t b = *(uint32_t *)(&inode->dbp0 + i*4);
@@ -224,6 +234,8 @@ uint8_t ext2_probe(device_t *dev)
 	fs->priv_data = (void *)priv;
 	dev->fs = fs;
 	mprint("Device %s (%d) is with EXT2 filesystem. Probe successful.\n", dev->name, dev->unique_id);
+	free(buf);
+	free(buffer);
 	return 1;
 }
 uint8_t ext2_mount(device_t *dev, void *privd)
