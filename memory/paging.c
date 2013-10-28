@@ -15,29 +15,6 @@ static uint32_t* last_page = 0;
  * and paging stuff will be from 4mb
  */
 
-void paging_init()
-{
-	mprint("Setting up paging\n");
-	page_directory = (uint32_t*)0x400000;
-	page_dir_loc = page_directory;
-	last_page = 0x404000;
-	for(int i = 0; i < 1024; i++)
-	{
-		page_directory[i] = 0 | 2;
-	}
-	paging_map_virtual_to_phys(0, 0);
-	paging_map_virtual_to_phys(0x400000, 0x400000);
-	paging_enable();
-	mprint("Paging was successfully enabled!\n");
-}
-
-void paging_enable()
-{
-	asm volatile("mov %%eax, %%cr3": :"a"(page_dir_loc));	
-	asm volatile("mov %cr0, %eax");
-	asm volatile("orl $0x80000000, %eax");
-	asm volatile("mov %eax, %cr0");
-}
 
 void paging_map_virtual_to_phys(uint32_t virt, uint32_t phys)
 {
@@ -48,6 +25,30 @@ void paging_map_virtual_to_phys(uint32_t virt, uint32_t phys)
 		phys += 4096;
 	}
 	page_directory[id] = ((uint32_t)last_page) | 3;
-	last_page = (((uint32_t)last_page) + 4096);
+	last_page = (uint32_t *)(((uint32_t)last_page) + 4096);
 	mprint("Mapping 0x%x (%d) to 0x%x\n", virt, id, phys);
+}
+
+void paging_enable()
+{
+	asm volatile("mov %%eax, %%cr3": :"a"(page_dir_loc));	
+	asm volatile("mov %cr0, %eax");
+	asm volatile("orl $0x80000000, %eax");
+	asm volatile("mov %eax, %cr0");
+}
+
+void paging_init()
+{
+	mprint("Setting up paging\n");
+	page_directory = (uint32_t*)0x400000;
+	page_dir_loc = (uint32_t)page_directory;
+	last_page = (uint32_t *)0x404000;
+	for(int i = 0; i < 1024; i++)
+	{
+		page_directory[i] = 0 | 2;
+	}
+	paging_map_virtual_to_phys(0, 0);
+	paging_map_virtual_to_phys(0x400000, 0x400000);
+	paging_enable();
+	mprint("Paging was successfully enabled!\n");
 }

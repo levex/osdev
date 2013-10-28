@@ -6,6 +6,8 @@
 #include "../include/tasking.h"
 #include "../include/device.h"
 #include "../include/vfs.h"
+#include "../include/proc.h"
+#include "../include/memory.h"
 #include "../include/string.h"
 #include "../include/ext2.h"
 
@@ -35,9 +37,10 @@ uint8_t list_mount()
 	for(int i = 0;i < MAX_MOUNTS;i ++)
 	{
 		if(!mount_points[i])break;
-		kprintf("%s on %s type: %s loc:0x%x\n", mount_points[i]->dev->name,
-		 mount_points[i]->loc, mount_points[i]->dev->fs->name, mount_points[i]->loc);
+		kprintf("%s on %s type: %s\n", mount_points[i]->dev->name,
+		 mount_points[i]->loc, mount_points[i]->dev->fs->name);
 	}
+	return 1;
 }
 
 uint8_t device_try_to_mount(device_t *dev, char *loc)
@@ -72,7 +75,7 @@ uint8_t device_try_to_mount(device_t *dev, char *loc)
 
 inline uint8_t __find_mount(char *filename, int *adjust)
 {
-	 char *orig = malloc(strlen(filename) + 1);
+	 char *orig = (char *)malloc(strlen(filename) + 1);
 	 memset(orig, 0, strlen(filename) + 1);
 	 memcpy(orig, filename, strlen(filename) + 1);
 	 if(orig[strlen(orig)] == '/') str_backspace(orig, '/');
@@ -123,7 +126,6 @@ uint32_t vfs_ls(char *dir, char* buffer)
 	char *orig = (char *)malloc(strlen(dir) + 1);
 	memset(orig, 0, strlen(dir) + 1);
 	memcpy(orig, dir, strlen(dir) + 1);
-	int rc = 0;
 	while(1)
 	{
 		for(int i = 0; i < MAX_MOUNTS; i++)
@@ -142,7 +144,7 @@ uint32_t vfs_ls(char *dir, char* buffer)
 				for(int k = 0; k < MAX_MOUNTS; k++)
 				{
 					if(!mount_points[k]) break;
-					char *mount = malloc(strlen(mount_points[k]->loc) + 1);
+					char *mount = (char *)malloc(strlen(mount_points[k]->loc) + 1);
 					memcpy(mount, mount_points[k]->loc, strlen(mount_points[k]->loc) + 1);
 					str_backspace(mount, '/');
 					if(strcmp(mount, dir) == 0)
@@ -151,6 +153,7 @@ uint32_t vfs_ls(char *dir, char* buffer)
 						if(strlen(p) == 0 || strlen(p) == 1) continue;
 						kprintf("%s\n", p);
 					}
+					free(mount);
 				}
 				break;
 			}
@@ -164,7 +167,7 @@ uint32_t vfs_ls(char *dir, char* buffer)
 
 uint8_t vfs_exist_in_dir(char *wd, char *fn)
 {
-	char *filename = malloc(strlen(wd) + 2 + strlen(fn));
+	char *filename = (char *)malloc(strlen(wd) + 2 + strlen(fn));
 	memset(filename, 0, strlen(wd) + 2 + strlen(fn));
 	memcpy(filename, wd, strlen(wd));
 	memcpy(filename+strlen(wd), fn, strlen(fn));
@@ -182,7 +185,7 @@ uint8_t vfs_exist_in_dir(char *wd, char *fn)
 		filename[index+1] = 0;
 	}
 	int rc = 0;
-	char *o = malloc(strlen(filename) + 2);
+	char *o = (char *)malloc(strlen(filename) + 2);
 	memset(o, 0, strlen(filename) + 2);
 	memcpy(o, filename, strlen(filename) + 1);
 	/*if(o[strlen(o)] != '/') 
@@ -207,6 +210,8 @@ uint8_t vfs_exist_in_dir(char *wd, char *fn)
 					mount_points[i]->dev->name, mount_points[i]->dev->unique_id);*/
 				rc = mount_points[i]->dev->fs->exist(filename,
 					mount_points[i]->dev, mount_points[i]->dev->fs->priv_data);
+				free(o);
+				free(filename);
 				return rc;
 			}
 		}
@@ -214,7 +219,7 @@ uint8_t vfs_exist_in_dir(char *wd, char *fn)
 			break;
 		str_backspace(o, '/');
 	}
-
+	free(o);
 	free(filename);
 	return rc;
 }

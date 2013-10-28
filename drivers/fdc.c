@@ -229,7 +229,7 @@ uint8_t flpy_read_sector(uint8_t head, uint8_t track, uint8_t sector)
 {
 		uint32_t st0, cy1;
 
-		fdc_dma_init(DMA_BUFFER, 512);
+		fdc_dma_init((uint8_t *)DMA_BUFFER, 512);
 		dma_set_read(FDC_DMA_CHANNEL);
 		__write_cmd(FDC_CMD_READ_SECT|FDC_CMD_EXT_MULTITRACK|FDC_CMD_EXT_SKIP|FDC_CMD_EXT_DENSITY);
 		__write_cmd((head << 2)| 0);
@@ -306,11 +306,11 @@ uint8_t flpy_write_lba(uint8_t *buf, uint32_t lba)
 		return 0;
 	}
 
-	memcpy(DMA_BUFFER, buf, 512);
+	memcpy((uint8_t *)DMA_BUFFER, buf, 512);
 
 	uint32_t st0, cy1;
 
-	fdc_dma_init(DMA_BUFFER, 512);
+	fdc_dma_init((uint8_t *)DMA_BUFFER, 512);
 	dma_set_write(FDC_DMA_CHANNEL);
 	__write_cmd(FDC_CMD_WRITE_SECT|FDC_CMD_EXT_MULTITRACK|FDC_CMD_EXT_SKIP|FDC_CMD_EXT_DENSITY);
 	__write_cmd((head << 2)| 0);
@@ -344,6 +344,7 @@ uint8_t flpy_write(uint8_t *buffer, uint32_t lba, uint32_t sectors)
 		if(!flpy_write_lba(buffer + sectors_wrote * 512, lba + sectors_wrote)) return 1;
 		sectors_wrote++;
 	}
+	return 1;
 }
 
 void fdc_reset()
@@ -384,7 +385,7 @@ void fdc_init()
 	__parse_cmos((cmos&0xf0) >> 4, cmos&0x0f);
 	if(!primary_avail) goto exit;
 	mprint("Registering FDC IRQ\n");
-	set_int(38, flpy_irq);
+	set_int(38, (uint32_t)flpy_irq);
 	mprint("Resetting controller.\n");
 	fdc_reset();
 	mprint("Floppy is now usable.\n");

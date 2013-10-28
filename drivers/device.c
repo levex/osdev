@@ -5,6 +5,7 @@
 #include "../include/mutex.h"
 #include "../include/tasking.h"
 #include "../include/device.h"
+#include "../include/memory.h"
 
 MODULE("DEV");
 
@@ -27,12 +28,13 @@ int device_add(device_t* dev)
 	return lastid;
 }
 
-device_t *device_get_by_id(int id)
+device_t *device_get_by_id(uint32_t id)
 {
 	for(int i = 0;i < 64; i++)
 	{
 		if(devices[i].unique_id == id) return &devices[i];
 	}
+	return 0;
 }
 
 int device_getnumber()
@@ -40,7 +42,7 @@ int device_getnumber()
 	return lastid;
 }
 
-device_t *device_get(int id)
+device_t *device_get(uint32_t id)
 {
 	return &devices[id];
 }

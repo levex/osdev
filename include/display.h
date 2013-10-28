@@ -18,13 +18,14 @@ typedef struct {
 	void (*putc)(char);
 	void (*clear)();
 } DISPLAY;
-#define MODULE(name) static char* __MODULE_NAME = name;
-#define panic(...) {kprintf("***KERNEL PANIC*** in %s at line %d in function: %s\n", __FILE__, __LINE__, __func__); kprintf(__VA_ARGS__); for(;;);}
+#define panic(...) {set_task(0); kprintf("***KERNEL PANIC*** in %s at line %d in function: %s\n", __FILE__, __LINE__, __func__); kprintf(__VA_ARGS__); for(;;);}
 //#define mprint(...) {kprintf("[%s]: ", __MODULE_NAME); kprintf(__VA_ARGS__);}
 #if 0
+	#define MODULE(name) static char* __MODULE_NAME = name;
 	#define mprint(...) __mprintf(__MODULE_NAME, __VA_ARGS__);
 #else
-	#define mprint(...)
+	#define MODULE(name)
+	#define mprint(...) {;}
 #endif
 #define kerror(...) {kprintf("***KERNEL OOPS***: "); kprintf(__VA_ARGS__);}
 #define pidprint(...) kprintf(__VA_ARGS__);

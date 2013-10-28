@@ -25,8 +25,8 @@ typedef struct __device_t {
 
 extern void device_init();
 extern int device_add(device_t* dev);
-extern device_t *device_get(int id);
-device_t *device_get_by_id(int id);
+extern device_t *device_get(uint32_t id);
+device_t *device_get_by_id(uint32_t id);
 extern int device_getnumber();
 
 #endif

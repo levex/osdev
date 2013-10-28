@@ -5,12 +5,13 @@
 #include "../../include/tasking.h"
 #include "../../include/device.h"
 #include "../../include/memory.h"
+#include "../../include/levos.h"
 
 #include <stdint.h>
 
 MODULE("PROC");
 
-uint8_t procfs_read(char *fn, char *buffer, device_t *dev, void* priv)
+uint8_t procfs_read(char *fn, char *buffer, device_t *dev UNUSED, void* priv UNUSED)
 {
 	if(strcmp(fn, "/os/full") == 0)
 	{
@@ -27,7 +28,7 @@ uint8_t procfs_read(char *fn, char *buffer, device_t *dev, void* priv)
 	return 0;
 }
 
-uint8_t procfs_read_dir(char *dn, char *buffer, device_t *dev, void* priv)
+uint8_t procfs_read_dir(char *dn, char *buffer UNUSED, device_t *dev UNUSED, void* priv UNUSED)
 {
 	if(!dn)return 0;
 	if(strcmp(dn, "/") == 0)
@@ -41,7 +42,7 @@ uint8_t procfs_read_dir(char *dn, char *buffer, device_t *dev, void* priv)
 	return 1;
 }
 
-uint8_t procfs_exist(char *fn, device_t *dev, void *priv)
+uint8_t procfs_exist(char *fn, device_t *dev UNUSED, void *priv UNUSED)
 {
 	if(strcmp(fn, "/") == 0)
 		return 1;
@@ -54,7 +55,7 @@ uint8_t procfs_exist(char *fn, device_t *dev, void *priv)
 	return 0;
 }
 
-uint8_t procfs_mount(device_t *dev, void *priv)
+uint8_t procfs_mount(device_t *dev, void *priv UNUSED)
 {
 	if(dev->unique_id == 13)
 		return 1;

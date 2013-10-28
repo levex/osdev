@@ -54,7 +54,6 @@ void __itoa_s(int i,unsigned base,char* buf) {
 }
 
 DEFINE_MUTEX(m_mprintf);
-static char* loc = 0;
 void __mprintf(char *m, ...)
 {
 	mutex_lock(&m_mprintf);
@@ -72,7 +71,7 @@ int kprintf (const char* str, ...) {
 		return 0;
 	va_list ap;
 	va_start(ap, str);
-	__kprintf_va_list(str, ap);
+	__kprintf_va_list((char *)str, ap);
 	return 1;
 }
 

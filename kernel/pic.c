@@ -15,7 +15,6 @@ void pic_init()
 	
 
 	/* First step is to save current masks, set by BIOS */
-	uint8_t m1 = inportb(PIC_MASTER_DATA), m2 = inportb(PIC_SLAVE_DATA);
 	mprint("Existing masks: Master: 0x%x Slave: 0x%x\n", m1, m2);
 	mprint("Beginning initialization\n");
 	/* set up cascading mode */

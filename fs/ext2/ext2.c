@@ -13,13 +13,13 @@ void ext2_read_block(uint8_t *buf, uint32_t block, device_t *dev, ext2_priv_data
 	dev->read(buf, block*sectors_per_block, sectors_per_block);
 
 }
-char *block_buf = 0;
+uint8_t *block_buf = 0;
 void ext2_read_inode(inode_t *inode_buf, uint32_t inode, device_t *dev, ext2_priv_data *priv)
 {
 	uint32_t bg = (inode - 1) / priv->sb.inodes_in_blockgroup;
-	int i = 0;
+	uint32_t i = 0;
 	/* Now we have which BG the inode is in, load that desc */
-	if(!block_buf) block_buf = (char *)malloc(priv->blocksize);
+	if(!block_buf) block_buf = (uint8_t *)malloc(priv->blocksize);
 	ext2_read_block(block_buf, priv->sb.superblock_id + 1, dev, priv);
 	block_group_desc_t *bgd = (block_group_desc_t*)block_buf;
 	/* Seek to the BG's desc */
@@ -38,7 +38,7 @@ void ext2_read_inode(inode_t *inode_buf, uint32_t inode, device_t *dev, ext2_pri
 }
 
 inode_t *inode = 0;
-char *root_buf = 0;
+uint8_t *root_buf = 0;
 uint8_t ext2_read_directory(char *filename, ext2_dir *dir, device_t *dev, ext2_priv_data *priv)
 {
 	while(dir->inode != 0) {
@@ -53,7 +53,7 @@ uint8_t ext2_read_directory(char *filename, ext2_dir *dir, device_t *dev, ext2_p
 			free(name);
 			return 1;
 		}
-		if(!filename && filename != 1) {
+		if(!filename && (uint32_t)filename != 1) {
 			//mprint("Found dir entry: %s to inode %d \n", name, dir->inode);
 			kprintf("%s\n", name);
 		}
@@ -67,7 +67,7 @@ uint8_t ext2_read_root_directory(char *filename, device_t *dev, ext2_priv_data *
 {
 	/* The root directory is always inode#2, so find BG and read the block. */
 	if(!inode) inode = (inode_t *)malloc(sizeof(inode_t));
-	if(!root_buf) root_buf = (char *)malloc(priv->blocksize);
+	if(!root_buf) root_buf = (uint8_t *)malloc(priv->blocksize);
 	ext2_read_inode(inode, 2, dev, priv);
 	if((inode->type & 0xF000) != INODE_TYPE_DIRECTORY)
 	{
@@ -85,7 +85,7 @@ uint8_t ext2_read_root_directory(char *filename, device_t *dev, ext2_priv_data *
 		/* Now loop through the entries of the directory */
 		if(ext2_read_directory(filename, (ext2_dir*)root_buf, dev, priv)) return 1;
 	}
-	if(filename && filename != 1) return 0;
+	if(filename && (uint32_t)filename != 1) return 0;
 	return 1;
 }
 
@@ -109,7 +109,7 @@ uint8_t ext2_find_file_inode(char *ff, inode_t *inode_buf, device_t *dev, ext2_p
 				uint32_t b = *(uint32_t*)(&inode->dbp0 + i*4);
 				if(!b) break;
 				ext2_read_block(root_buf, b, dev, priv);
-				if(!ext2_read_directory(filename, root_buf, dev, priv))
+				if(!ext2_read_directory(filename, (ext2_dir *)root_buf, dev, priv))
 				{
 					if(strcmp(filename, "") == 0)
 					{
@@ -143,14 +143,14 @@ uint8_t ext2_find_file_inode(char *ff, inode_t *inode_buf, device_t *dev, ext2_p
 void ext2_list_directory(char *dd, char *buffer, device_t *dev, ext2_priv_data *priv)
 {
 	char *dir = dd;
-	int rc = ext2_find_file_inode(dir, buffer, dev, priv);
+	int rc = ext2_find_file_inode(dir, (inode_t *)buffer, dev, priv);
 	if(!rc) return;
 	for(int i = 0;i < 12; i++)
 	{
 		uint32_t b = *(uint32_t *)(&inode->dbp0 + i*4);
 		if(!b) break;
 		ext2_read_block(root_buf, b, dev, priv);
-		ext2_read_directory(0, root_buf, dev, priv);
+		ext2_read_directory(0, (ext2_dir *)root_buf, dev, priv);
 	}
 }
 
@@ -158,7 +158,7 @@ uint8_t ext2_read_file(char *fn, char *buffer, device_t *dev, ext2_priv_data *pr
 {
 	/* Put the file's inode to the buffer */
 	char *filename = fn;
-	if(!ext2_find_file_inode(filename, buffer, dev, priv))
+	if(!ext2_find_file_inode(filename, (inode_t *)buffer, dev, priv))
 	{
 		return 0;
 	}
@@ -191,7 +191,7 @@ uint8_t ext2_probe(device_t *dev)
 		kprintf("Device has no read, skipped.\n");
 		return 0;
 	}
-	char *buf = (char *)malloc(512);
+	uint8_t *buf = (uint8_t *)malloc(512);
 	dev->read(buf, 2, 1);
 	superblock_t *sb = (superblock_t *)buf;
 	if(sb->ext2_sig != EXT2_SIGNATURE)
@@ -221,16 +221,15 @@ uint8_t ext2_probe(device_t *dev)
 	 * block of the SB first. This is located in the SB.
 	 */
 	uint32_t block_bgdt = sb->superblock_id + 1;
-	char *buffer = (char *)malloc(blocksize);
+	uint8_t *buffer = (uint8_t *)malloc(blocksize);
 	ext2_read_block(buffer, block_bgdt, dev, priv);
-	block_group_desc_t *bgd = (block_group_desc_t *)buffer;
 	priv->first_bgd = block_bgdt;
 	fs->name = "EXT2";
-	fs->probe = ext2_probe;
-	fs->mount = ext2_mount;
-	fs->read = ext2_read_file;
-	fs->exist = ext2_exist;
-	fs->read_dir = ext2_list_directory;
+	fs->probe = (uint8_t(*)(device_t*)) ext2_probe;
+	fs->mount = (uint8_t(*)(device_t*, void *)) ext2_mount;
+	fs->read = (uint8_t(*)(char *, char *, device_t *, void *)) ext2_read_file;
+	fs->exist = (uint8_t(*)(char *, device_t*, void *)) ext2_exist;
+	fs->read_dir = (uint8_t(*)(char * , char *, device_t *, void *)) ext2_list_directory;
 	fs->priv_data = (void *)priv;
 	dev->fs = fs;
 	mprint("Device %s (%d) is with EXT2 filesystem. Probe successful.\n", dev->name, dev->unique_id);
@@ -242,7 +241,7 @@ uint8_t ext2_mount(device_t *dev, void *privd)
 {
 	mprint("Mounting ext2 on device %s (%d)\n", dev->name, dev->unique_id);
 	ext2_priv_data *priv = privd;
-	if(ext2_read_root_directory(1, dev, priv))
+	if(ext2_read_root_directory((char *)1, dev, priv))
 		return 1;
 	return 0;
 }

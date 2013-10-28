@@ -22,7 +22,7 @@
 	send_eoi(irqno); \
 	addProcess(createProcess(name, functocall)); IRQ_END;}
 
-#define START(name, addr) addProcess(createProcess(name, addr));
+#define START(name, addr) addProcess(createProcess(name, (uint32_t)addr));
 
 #define START_AND_WAIT(name, addr) int __pid_name = START(name, addr); \
 				while(is_pid_running(__pid_name))schedule_noirq();

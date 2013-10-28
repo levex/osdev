@@ -2,11 +2,10 @@
 #include "../include/dma.h"
 #include "../include/display.h"
 #include "../include/hal.h"
+#include "../include/levos.h"
 #include "../include/tasking.h"
 
 #include <stdint.h>
-
-MODULE("DMA");
 
 void dma_mask_channel(uint8_t channel){
 
@@ -26,14 +25,14 @@ void dma_unmask_channel (uint8_t channel) {
 }
 
 // unmasks all channels
-void dma_unmask_all (int dma){
+void dma_unmask_all (int dma UNUSED){
 
         // it doesnt matter what is written to this register
         outportb(DMA1_UNMASK_ALL_REG, 0xff);
 }
 
 // resets controller to defaults
-void dma_reset (int dma){
+void dma_reset (int dma UNUSED){
 
         // it doesnt matter what is written to this register
         outportb(DMA0_TEMP_REG, 0xff);

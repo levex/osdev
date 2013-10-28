@@ -5,6 +5,7 @@
 #include "../include/tasking.h"
 #include "../include/memory.h"
 #include "../include/signal.h"
+#include "../include/levos.h"
 
 #include <stdint.h>
 
@@ -80,7 +81,7 @@ void _kill()
 	if(c->pid == 1) { set_task(0); panic("Idle can't be killed!"); }
 	mprint("Killing process %s (%d)\n", c->name, c->pid);
 	set_task(0);
-	free(c->stacktop);
+	free((void *)c->stacktop);
 	free(c);
 	c->prev->next = c->next;
 	c->next->prev = c->prev;
@@ -107,7 +108,7 @@ void jack_the_ripper()
 			set_task(0);
 			p->prev->next = p->next;
 			p->next->prev = p->prev;
-			free(p->stacktop);
+			free((void *)p->stacktop);
 			free(p);
 			set_task(1);
 			mprint("Jack killed %s (%d). One less zombie.\n", p->name, p->pid);
@@ -152,7 +153,7 @@ void __notified(int sig)
 	}
 }
 
-int is_pid_running(int pid)
+int is_pid_running(uint32_t pid)
 {
 	set_task(0);
 	PROCESS* p = c;
@@ -170,7 +171,7 @@ int is_pid_running(int pid)
 
 PROCESS* createProcess(char* name, uint32_t addr)
 {
-	PROCESS* p = malloc(sizeof(PROCESS));
+	PROCESS* p = (PROCESS *)malloc(sizeof(PROCESS));
 	memset(p, 0, sizeof(PROCESS));
 	p->name = name;
 	p->pid = ++lpid;
@@ -178,7 +179,7 @@ PROCESS* createProcess(char* name, uint32_t addr)
 	p->state = PROCESS_STATE_ALIVE;
 	p->notify = __notified;
 	p->esp = (uint32_t)malloc(4096);
-	uint32_t* stack = p->esp + 4096;
+	uint32_t* stack = (uint32_t *)(p->esp + 4096);
 	p->stacktop = p->esp;
 	*--stack = 0x00000202; // eflags
 	*--stack = 0x8; // cs
@@ -199,15 +200,6 @@ PROCESS* createProcess(char* name, uint32_t addr)
 	return p;
 }
 
-/* add process but take care of others also! */
-int addProcess(PROCESS* p)
-{
-	set_task(0);
-	__addProcess(p);
-	set_task(1);
-	return p->pid;
-}
-
 /* This adds a process while no others are running! */
 void __addProcess(PROCESS* p)
 {
@@ -215,6 +207,15 @@ void __addProcess(PROCESS* p)
 	p->next->prev = p;
 	p->prev = c;
 	c->next = p;
+}
+
+/* add process but take care of others also! */
+int addProcess(PROCESS* p)
+{
+	set_task(0);
+	__addProcess(p);
+	set_task(1);
+	return p->pid;
 }
 
 /* starts tasking */

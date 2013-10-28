@@ -78,7 +78,7 @@ static void pit_start_counter (uint32_t freq, uint8_t counter, uint8_t mode) {
 void pit_init()
 {
 	mprint("Registering IRQ#0=INT#32 as PIT_IRQ\n");
-	set_int(32, pit_irq);
+	set_int(32, (uint32_t)pit_irq);
 	pit_start_counter (200,PIT_OCW_COUNTER_0, PIT_OCW_MODE_SQUAREWAVEGEN);
 	mprint("Init done.\n");
 }

@@ -25,12 +25,12 @@ static inline void __textmode_scrollup()
 	mutex_lock(&m_scroll);
 	for(int y = 0; y < TEXTMODE_HEIGHT; y++)
 	{
-		memcpy(VGA_MEMORY + y*TEXTMODE_WIDTH*2 ,
-			VGA_MEMORY + (y+1)*TEXTMODE_WIDTH*2,
+		memcpy((char *)(VGA_MEMORY + y*TEXTMODE_WIDTH*2) ,
+			(char *)(VGA_MEMORY + (y+1)*TEXTMODE_WIDTH*2),
 			TEXTMODE_WIDTH*2);
 	}
 	uint8_t entity = __textmode_make_color(d.con.fgcol, d.con.bgcol);
-	memset16(VGA_MEMORY + TEXTMODE_HEIGHT*TEXTMODE_WIDTH*2, __textmode_create_entry(' ', entity), TEXTMODE_WIDTH*2);
+	memset16((char *)(VGA_MEMORY + TEXTMODE_HEIGHT*TEXTMODE_WIDTH*2), __textmode_create_entry(' ', entity), TEXTMODE_WIDTH*2);
 	mutex_unlock(&m_scroll);
 }
 

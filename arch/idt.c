@@ -4,6 +4,8 @@
 #include "../include/display.h"
 #include "../include/hal.h"
 #include "../include/tasking.h"
+#include "../include/levos.h"
+#include "../include/pit.h"
 
 MODULE("IDT");
 
@@ -75,7 +77,7 @@ void idt_register_interrupt(uint8_t i, uint32_t callback)
 	return;
 }
 
-void add_idt_descriptor(uint8_t id, idt_descriptor desc)
+void add_idt_descriptor(uint8_t id UNUSED, idt_descriptor desc UNUSED)
 {
 	panic("Deprecated function called!");
 }

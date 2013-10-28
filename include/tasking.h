@@ -25,7 +25,7 @@ typedef struct _process {
 extern int addProcess(PROCESS* p);
 extern PROCESS* createProcess(char* name, uint32_t addr);
 
-extern int is_pid_running(int pid);
+extern int is_pid_running(uint32_t pid);
 
 extern int is_tasking();
 
@@ -33,6 +33,8 @@ extern char* p_name();
 extern int p_pid();
 
 extern void send_sig(int sig);
+
+extern void tasking_print_all();
 
 extern void _kill();
 extern void kill();

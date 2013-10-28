@@ -6,6 +6,7 @@
 #include "../include/tasking.h"
 #include "../include/keyboard.h"
 #include "../include/mutex.h"
+#include "../include/memory.h"
 
 MODULE("KBD");
 
@@ -94,7 +95,7 @@ void keyboard_init()
 	keycache = (uint8_t*)malloc(256);
 	memset(keycache, 0, 256);
 	/* Install IRQ */
-	set_int(33, keyboard_irq);
+	set_int(33, (uint32_t)keyboard_irq);
 	__kbd_enabled = 1;
 	_kill(); /* end me */
 }

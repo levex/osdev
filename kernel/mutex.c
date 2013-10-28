@@ -2,6 +2,7 @@
 #include "../include/display.h"
 #include "../include/mutex.h"
 #include "../include/pit.h"
+#include "../include/tasking.h"
 
 #include <stdint.h>
 

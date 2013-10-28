@@ -3,3 +3,4 @@
 v86_test_code:
 	mov $0x1337, %eax
 	retl
+

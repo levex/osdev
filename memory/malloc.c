@@ -3,6 +3,7 @@
 #include "../include/display.h"
 #include "../include/memory.h"
 #include "../include/tasking.h"
+#include "../include/pit.h"
 
 MODULE("MMU");
 
@@ -17,7 +18,7 @@ void mm_init(uint32_t kernel_end)
 	last_alloc = kernel_end + 0x1000;
 	heap_begin = last_alloc;
 	heap_end = 0x400000;
-	memset(heap_begin, 0, heap_end - heap_begin);
+	memset((char *)heap_begin, 0, heap_end - heap_begin);
 	mprint("Kernel heap starts at 0x%x\n", last_alloc);
 }
 
@@ -26,9 +27,10 @@ void mm_print_out()
 	kprintf("Memory used: %d bytes\n", memory_used);
 	kprintf("Memory free: %d bytes\n", heap_end - heap_begin - memory_used);
 	kprintf("Heap size: %d bytes\n", heap_end - heap_begin);
+	kprintf("Heap start: 0x%x\n", heap_begin);
 }
 
-void free(char *mem)
+void free(void *mem)
 {
 	alloc_t *alloc = (mem - sizeof(alloc_t));
 	memory_used -= alloc->size + sizeof(alloc_t);
@@ -41,7 +43,7 @@ char* malloc(size_t size)
 
 	/* Loop through blocks and find a block sized the same or bigger */
 	uint8_t *mem = (uint8_t *)heap_begin;
-	while(mem < last_alloc)
+	while((uint32_t)mem < last_alloc)
 	{
 		alloc_t *a = (alloc_t *)mem;
 		/* If the alloc has no size, we have reaced the end of allocation */
@@ -68,7 +70,7 @@ char* malloc(size_t size)
 			mprint("RE:Allocated %d bytes from 0x%x to 0x%x\n", size, mem + sizeof(alloc_t), mem + sizeof(alloc_t) + size);
 			memset(mem + sizeof(alloc_t), 0, size);
 			memory_used += size + sizeof(alloc_t);
-			return mem + sizeof(alloc_t);
+			return (char *)(mem + sizeof(alloc_t));
 		}
 		/* If it isn't allocated, but the size is not good, then
 		 * add its size and the sizeof alloc_t to the pointer and
@@ -94,8 +96,8 @@ char* malloc(size_t size)
 	last_alloc += 4;
 	mprint("Allocated %d bytes from 0x%x to 0x%x\n", size, (uint32_t)alloc + sizeof(alloc_t), last_alloc);
 	memory_used += size + 4 + sizeof(alloc_t);
-	memset((uint32_t)alloc + sizeof(alloc_t), 0, size);
-	return ((uint32_t)alloc + sizeof(alloc_t));
+	memset((char *)((uint32_t)alloc + sizeof(alloc_t)), 0, size);
+	return (char *) ((uint32_t)alloc + sizeof(alloc_t));
 /*
 	char* ret = (char*)last_alloc;
 	last_alloc += size;

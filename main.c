@@ -7,6 +7,7 @@
 #include <stdint.h>
  
 #include "include/string.h"
+#include "include/memory.h"
 #include "include/display.h"
 #include "display/textmode/dispi_textmode.h"
 #include "include/x86/gdt.h"
@@ -35,8 +36,8 @@ void _test();
 
 int levex_id = 0;
 
-extern void kernel_end;
-extern void kernel_base;
+extern uint32_t kernel_end;
+extern uint32_t kernel_base;
 
 static char* hostname = "levex-levos";
 static char* username = "root";
@@ -46,6 +47,12 @@ void __login()
 	uint8_t *buffer = (uint8_t*)malloc(64);
 	int l = 0;
 	char c = 0;
+	kprintf("  _                 ____   _____ _  _   \n"
+ 			" | |               / __ \\ / ____| || |  \n"
+ 			" | |     _____   _| |  | | (___ | || |_  \n"
+ 			" | |    / _ \\ \\ / / |  | |\\___ \\|__   _|\n"
+			" | |___|  __/\\ V /| |__| |____) |  | |  \n"
+			" |______\\___| \\_/  \\____/|_____/   |_|  \n");
 retry:
 	memset(buffer, 0, 64);
 	kprintf("\n%s login: ", hostname);
@@ -57,7 +64,7 @@ retry:
 		if(!c) { schedule_noirq(); continue;}
 		if(c == '\n')
 		{
-			if(strcmp(buffer, "root") == 0)
+			if(strcmp((char *)buffer, "root") == 0)
 			{
 				break;
 			}
@@ -67,7 +74,6 @@ retry:
 		buffer[l] = 0;
 		disp->putc(c);
 	}
-pwd:
 	memset(buffer, 0, 64);
 	kprintf("\n%s@%s password: ", username, hostname);
 	l = 0;
@@ -78,7 +84,7 @@ pwd:
 		if(!c) { schedule_noirq(); continue;}
 		if(c == '\n')
 		{
-			if(strcmp(buffer, "toor") == 0)
+			if(strcmp((char *)buffer, "toor") == 0)
 			{
 				disp->putc('\n');
 				_kill();
@@ -107,7 +113,7 @@ void __cursor_updater()
 	_kill();
 }
 
-void test_device_read(uint8_t* buffer, uint32_t offset, uint32_t len)
+void test_device_read(uint8_t* buffer, uint32_t offset UNUSED, uint32_t len)
 {
 	len --;
 	while(len--)
@@ -141,7 +147,7 @@ void create_test_device()
 	testdev->name = "/dev/levex";
 	testdev->unique_id = 0x1337;
 	testdev->dev_type = DEVICE_CHAR;
-	testdev->read = test_device_read;
+	testdev->read = (uint8_t(*)(uint8_t*, uint32_t, uint32_t))test_device_read;
 	levex_id = device_add(testdev);
 	_kill();
 }
@@ -264,7 +270,7 @@ void _test()
 	buffer = (char*)malloc(256);
 	ls_buffer = (char *)malloc(1024);
 	char *file_buf = (char *)malloc(512);
-	uint8_t *write_buf = malloc(512);
+	uint8_t *write_buf = (uint8_t *)malloc(512);
 	char* prompt = "(kernel) $ ";
 	uint8_t prompt_size = strlen(prompt);
 	kprintf("Welcome to LevOS 4.0\nThis is a very basic terminal.\nDon't do anything stupid.\n");
@@ -309,9 +315,9 @@ prompt:
 			}
 			if(strcmp(buffer, "malloc") == 0)
 			{
-				uint8_t *mem = malloc(1337);
+				uint8_t *mem = (uint8_t *)malloc(1337);
 				free(mem);
-				mem = malloc(1337);
+				mem = (uint8_t *)malloc(1337);
 			}
 			if(strcmp(buffer, "mount") == 0)
 			{
@@ -414,7 +420,7 @@ prompt:
 				if(vfs_exist_in_dir(wd, arg))
 				{
 					size_t size = strlen(wd) + strlen(arg) + 2;
-					char *_w = malloc(size);
+					char *_w = (char *)malloc(size);
 					memset(_w, 0, size);
 					memcpy(_w, wd, strlen(wd));
 					memcpy(_w + strlen(wd), arg, strlen(arg));
@@ -430,7 +436,7 @@ prompt:
 				if(device_try_to_mount(dev, "/")) {
 					kprintf("Mounted / on %s (%d) with %s\n", dev->name, dev->unique_id, dev->fs->name);
 					root_mounted = 1;
-					wd = malloc(512);
+					wd = (char *)malloc(512);
 					memcpy(wd, "/", 2);
 					prompt_size = strlen(username) + strlen(hostname) + 4 + strlen(wd);
 					START_AND_WAIT("proc_init", proc_init);
