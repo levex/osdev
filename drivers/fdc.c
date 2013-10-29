@@ -4,6 +4,7 @@
 #include "../include/hal.h"
 #include "../include/tasking.h"
 #include "../include/dma.h"
+#include "../include/pit.h"
 #include "../include/device.h"
 #include "../include/memory.h"
 
@@ -269,7 +270,7 @@ uint8_t* flpy_read_lba(int lba)
 	fdc_set_motor(0, 1);
 	rc = fdc_seek(track, head);
 	if(rc) {
-		mprint("Failed to seek!\n");
+		BUG("Failed to seek!\n");
 		return 0;
 	}
 

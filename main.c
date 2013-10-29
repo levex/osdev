@@ -27,6 +27,8 @@
 #include "include/ata.h"
 #include "include/vfs.h"
 #include "include/proc.h"
+#include "include/loader.h"
+#include "include/elf.h"
 
 static DISPLAY* disp = 0;
 
@@ -216,6 +218,7 @@ void kernel_main()
 	 * Safe and sound, on the way to tasking!
 	 * Let's roll.
 	 */
+	syscall_init();
 	tasking_init();
 	/* Tasking should have started late_init(),
 	 * if not, we are screwed as no peripherials are in
@@ -236,10 +239,12 @@ void late_init()
 	int pid = 0;	
 	pid = START("kbd_init", keyboard_init);
 	pid = START("vfs_init", vfs_init);
+	pid = START("loader_init", loader_init);
 	cu_pid = START("cursor_update", __cursor_updater);
 	pid = START("devicemm", device_init);
 	while(is_pid_running(pid))schedule_noirq();
 	pid = START("testdev", create_test_device);
+	pid = START("elf_init", elf_init);
 	pid = START("rtc_init", rtc_init);
 	pid = START("ata_init", ata_init);
 	pid = START("fdc_init", fdc_init);
@@ -265,11 +270,13 @@ static uint16_t loc = 0;
 static char *wd = 0;
 static int root_mounted = 0;
 static char *ls_buffer = 0;
+static uint8_t *file_buf = 0;
 void _test()
 {
 	buffer = (char*)malloc(256);
 	ls_buffer = (char *)malloc(1024);
-	char *file_buf = (char *)malloc(512);
+	file_buf = (uint8_t *)malloc(65536);
+	if(!file_buf) panic("Shit just got serious. This should absolutely never happen!\n");
 	uint8_t *write_buf = (uint8_t *)malloc(512);
 	char* prompt = "(kernel) $ ";
 	uint8_t prompt_size = strlen(prompt);
@@ -457,10 +464,15 @@ prompt:
 			}
 			if(strcmp(buffer, "lev") == 0)
 			{
-				if(vfs_read("/etc/test/omg/levex.txt", file_buf)) {
-					kprintf("read: %s\n", file_buf);
-					memset(file_buf, 0, 512);
-				} else kprintf("Unable to read /levex.txt!\n");
+				if(vfs_read("/bin/hw", file_buf)) {
+					int pid = 0;
+					if(pid = exec_start(file_buf))
+					{
+						while(is_pid_running(pid)) schedule_noirq();
+					}
+				} else {
+					kprintf("Unable to read /bin/hw\n");
+				}
 			}
 			goto prompt;
 		}

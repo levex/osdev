@@ -97,7 +97,7 @@ char* malloc(size_t size)
 	mprint("Allocated %d bytes from 0x%x to 0x%x\n", size, (uint32_t)alloc + sizeof(alloc_t), last_alloc);
 	memory_used += size + 4 + sizeof(alloc_t);
 	memset((char *)((uint32_t)alloc + sizeof(alloc_t)), 0, size);
-	return (char *) ((uint32_t)alloc + sizeof(alloc_t));
+	return (char *)((uint32_t)alloc + sizeof(alloc_t));
 /*
 	char* ret = (char*)last_alloc;
 	last_alloc += size;

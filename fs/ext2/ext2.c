@@ -2,9 +2,15 @@
 #include "../../include/ext2.h"
 #include "../../include/display.h"
 #include "../../include/device.h"
+#include "../../include/levos.h"
 #include "../../include/memory.h"
+#include "../../include/tasking.h"
 
 MODULE("EXT2");
+
+static inode_t *inode = 0;
+static uint8_t *root_buf = 0;
+static uint8_t *block_buf = 0;
 
 void ext2_read_block(uint8_t *buf, uint32_t block, device_t *dev, ext2_priv_data *priv)
 {
@@ -13,7 +19,6 @@ void ext2_read_block(uint8_t *buf, uint32_t block, device_t *dev, ext2_priv_data
 	dev->read(buf, block*sectors_per_block, sectors_per_block);
 
 }
-uint8_t *block_buf = 0;
 void ext2_read_inode(inode_t *inode_buf, uint32_t inode, device_t *dev, ext2_priv_data *priv)
 {
 	uint32_t bg = (inode - 1) / priv->sb.inodes_in_blockgroup;
@@ -37,8 +42,6 @@ void ext2_read_inode(inode_t *inode_buf, uint32_t inode, device_t *dev, ext2_pri
 	memcpy(inode_buf, _inode, sizeof(inode_t));
 }
 
-inode_t *inode = 0;
-uint8_t *root_buf = 0;
 uint8_t ext2_read_directory(char *filename, ext2_dir *dir, device_t *dev, ext2_priv_data *priv)
 {
 	while(dir->inode != 0) {
@@ -79,7 +82,7 @@ uint8_t ext2_read_root_directory(char *filename, device_t *dev, ext2_priv_data *
 	 */
 	for(int i = 0;i < 12; i++)
 	{
-		uint32_t b = *(uint32_t*)(&inode->dbp0 + i*4);
+		uint32_t b = inode->dbp[i];
 		if(b == 0) break;
 		ext2_read_block(root_buf, b, dev, priv);
 		/* Now loop through the entries of the directory */
@@ -106,7 +109,7 @@ uint8_t ext2_find_file_inode(char *ff, inode_t *inode_buf, device_t *dev, ext2_p
 			mprint("Looking for: %s\n", filename);
 			for(int i = 0; i < 12; i++)
 			{
-				uint32_t b = *(uint32_t*)(&inode->dbp0 + i*4);
+				uint32_t b = inode->dbp[i];
 				if(!b) break;
 				ext2_read_block(root_buf, b, dev, priv);
 				if(!ext2_read_directory(filename, (ext2_dir *)root_buf, dev, priv))
@@ -147,33 +150,50 @@ void ext2_list_directory(char *dd, char *buffer, device_t *dev, ext2_priv_data *
 	if(!rc) return;
 	for(int i = 0;i < 12; i++)
 	{
-		uint32_t b = *(uint32_t *)(&inode->dbp0 + i*4);
+		uint32_t b = inode->dbp[i];
 		if(!b) break;
 		ext2_read_block(root_buf, b, dev, priv);
 		ext2_read_directory(0, (ext2_dir *)root_buf, dev, priv);
 	}
 }
-
+static inode_t *minode = 0;
 uint8_t ext2_read_file(char *fn, char *buffer, device_t *dev, ext2_priv_data *priv)
 {
 	/* Put the file's inode to the buffer */
+	if(!minode) minode = (inode_t *)malloc(sizeof(inode_t));
 	char *filename = fn;
-	if(!ext2_find_file_inode(filename, (inode_t *)buffer, dev, priv))
+	if(!ext2_find_file_inode(filename, minode, dev, priv))
 	{
+		mprint("File inode not found.\n");
 		return 0;
 	}
-	if(buffer)
+	for(int i = 0; i < 12; i++)
 	{
-		inode_t *minode = (inode_t *)buffer;
-		for(int i = 0; i < 12; i++)
-		{
-			uint32_t b = *(uint32_t*)(&minode->dbp0 + i*4);
-			if(b == 0) break;
-			mprint("Reading block: %d\n", b);
-			ext2_read_block(root_buf, b, dev, priv);
-			memcpy(buffer + i*priv->blocksize, root_buf, priv->blocksize);
-		}
+		uint32_t b = minode->dbp[i];
+		if(b == 0) { return 1; mprint("EOF\n"); }
+		if(b > priv->sb.blocks) panic("%s: block %d outside range (max: %d)!\n", __func__,
+				b, priv->sb.blocks);
+		mprint("Reading block: %d\n", b);
+
+		ext2_read_block(root_buf, b, dev, priv);
+		//kprintf("Copying to: 0x%x size: %d bytes\n", buffer + i*(priv->blocksize), priv->blocksize);
+		memcpy(buffer + i*(priv->blocksize), root_buf, priv->blocksize);
+		//kprintf("%c%c%c\n", *(uint8_t*)(buffer + 1),*(uint8_t*)(buffer + 2), *(uint8_t*)(buffer + 3));
 	}
+	mprint("Read all 12 DBP(s)! *BUG*\n");
+	return 1;
+}
+
+uint8_t ext2_touch(char *file, device_t *dev UNUSED, ext2_priv_data *priv UNUSED)
+{
+	/* file = "levex.txt"; */
+	inode_t *fi = (inode_t *)malloc(sizeof(inode_t));
+	fi->hardlinks = 1;
+	ext2_dir *entry = (ext2_dir *)malloc(sizeof(ext2_dir) + strlen(file) + 1);
+	entry->size = sizeof(ext2_dir) + strlen(file) + 1;
+	entry->namelength = strlen(file) + 1;
+	entry->reserved = 0;
+	memcpy(&entry->reserved + 1, file, strlen(file) + 1);
 	return 1;
 }
 

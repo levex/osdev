@@ -29,7 +29,7 @@ typedef struct {
 #endif
 #define kerror(...) {kprintf("***KERNEL OOPS***: "); kprintf(__VA_ARGS__);}
 #define pidprint(...) kprintf(__VA_ARGS__);
-#define BUG(...) {kprintf("\n\n*** KERNEL BUG***:"); kprintf(__VA_ARGS__);}
+#define BUG(...) {set_task(0); kprintf("\n\n*** KERNEL BUG***: "); kprintf(__VA_ARGS__); while(1);}
 extern uint8_t display_register(DISPLAY *d);
 extern uint8_t display_setcurrent(uint8_t id);
 extern DISPLAY* display_getcurrent();

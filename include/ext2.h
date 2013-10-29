@@ -66,7 +66,8 @@ typedef struct {
 	uint32_t disk_sectors;
 	uint32_t flags;
 	uint32_t ossv1;
-	uint32_t dbp0;
+	uint32_t dbp[12];
+	/*uint32_t dbp0;
 	uint32_t dbp1;
 	uint32_t dbp2;
 	uint32_t dbp3;
@@ -77,7 +78,7 @@ typedef struct {
 	uint32_t dbp8;
 	uint32_t dbp9;
 	uint32_t dbp10;
-	uint32_t dbp11;
+	uint32_t dbp11;*/
 	uint32_t singly_block;
 	uint32_t doubly_block;
 	uint32_t triply_block;

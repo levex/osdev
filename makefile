@@ -18,6 +18,9 @@ assembly:
 	$(AS) boot.s -o boot.o
 	$(AS) v86.s -o v86.o
 
+app:
+	cd apps && $(MAKE) $(MFLAGS)
+
 bkernel:
 	if [[ -e "objs.txt" ]]; then rm objs.txt; fi;
 	$(CC) -c main.c -o kernel.o $(CFLAGS)
@@ -29,6 +32,7 @@ bkernel:
 	cd kernel && $(MAKE) $(MFLAGS)
 	cd drivers && $(MAKE) $(MFLAGS)
 	cd fs && $(MAKE) $(MFLAGS)
+	cd exec && $(MAKE) $(MFLAGS)
 
 objs = `cat objs.txt`
 link:
