@@ -42,6 +42,7 @@ uint8_t elf_start(uint8_t *buf, elf_priv_data *priv UNUSED)
 	}
 	/* Map the virtual space */
 	uint32_t phys_loc = loader_get_unused_load_location();
+	uint32_t cr3 = pmalloc(4096);
 	/* Find first program header and loop through them */
 	elf_program_header_t *ph = (elf_program_header_t *)(buf + header->e_phoff);
 	for(int i = 0; i < header->e_phnum; i++, ph++)

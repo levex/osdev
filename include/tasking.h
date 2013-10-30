@@ -17,6 +17,7 @@ typedef struct _process {
 	uint32_t esp;
 	uint32_t stacktop;
 	uint32_t eip;
+	uint32_t cr3;
 	uint32_t state;
 	void (*notify)(int);
 	struct _process* next;

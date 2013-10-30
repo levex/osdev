@@ -83,6 +83,7 @@ void _kill()
 	set_task(0);
 	free((void *)c->stacktop);
 	free(c);
+	pfree(c->cr3);
 	c->prev->next = c->next;
 	c->next->prev = c->prev;
 	set_task(1);
@@ -179,6 +180,7 @@ PROCESS* createProcess(char* name, uint32_t addr)
 	p->state = PROCESS_STATE_ALIVE;
 	p->notify = __notified;
 	p->esp = (uint32_t)malloc(4096);
+	asm volatile("mov %%cr3, %%eax":"=a"(p->cr3));
 	uint32_t* stack = (uint32_t *)(p->esp + 4096);
 	p->stacktop = p->esp;
 	*--stack = 0x00000202; // eflags
@@ -242,7 +244,6 @@ void schedule_noirq()
 	asm volatile("int $0x2e");
 	return;
 }
-
 void schedule()
 {
 	//asm volatile("add $0xc, %esp");
@@ -259,6 +260,7 @@ void schedule()
 	asm volatile("push %gs");
 	asm volatile("mov %%esp, %%eax":"=a"(c->esp));
 	c = c->next;
+	asm volatile("mov %%eax, %%cr3": :"a"(c->cr3));
 	asm volatile("mov %%eax, %%esp": :"a"(c->esp));
 	asm volatile("pop %gs");
 	asm volatile("pop %fs");

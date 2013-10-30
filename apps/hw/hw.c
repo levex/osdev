@@ -1,12 +1,10 @@
+static char *text = "Hello, world! LevOS and Linux cross-compatibility!\n";
 void main()
 {
-	char *text = "Hello, world!\n";
-	int file = -1;
-	/* syscall 1: open() eax=1 ebx=stdout(1) RET: eax=file*/
-	asm volatile("int $0x80":"=a"(file):"a"(1), "b"(1));
-	/* syscall 2: write() eax=2 ebx=buffer ecx=file RET: none*/
-	asm volatile("int $0x80": :"a"(2), "b"(text), "c"(file));
-	/* syscall 0: exit() eax=0 RET: none */
-	asm volatile("int $0x80": :"a"(0));
-	return;
+	/* syscall 4: write()      eax=4  ebx=file ecx=buffer edx=size RET: ecx=size*/
+	asm volatile("int $0x80": :"a"(4), "b"(0), "c"(text), "d"(52));
+	/* syscall 1: exit()       eax=1 ebx=err */
+	asm volatile("xor %eax, %eax\n");
+	asm volatile("int $0x80": :"a"(1), "b"(0));
+	while(1);
 }
