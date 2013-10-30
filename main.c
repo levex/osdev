@@ -115,7 +115,7 @@ void __cursor_updater()
 	_kill();
 }
 
-void test_device_read(uint8_t* buffer, uint32_t offset UNUSED, uint32_t len)
+void test_device_read(uint8_t* buffer, uint32_t offset UNUSED, uint32_t len, device_t *dev UNUSED)
 {
 	len --;
 	while(len--)
@@ -149,7 +149,7 @@ void create_test_device()
 	testdev->name = "/dev/levex";
 	testdev->unique_id = 0x1337;
 	testdev->dev_type = DEVICE_CHAR;
-	testdev->read = (uint8_t(*)(uint8_t*, uint32_t, uint32_t))test_device_read;
+	testdev->read = (uint8_t(*)(uint8_t*, uint32_t, uint32_t, device_t*))test_device_read;
 	levex_id = device_add(testdev);
 	_kill();
 }
@@ -158,7 +158,7 @@ void __read()
 {
 	uint8_t* buffer = (uint8_t*)malloc(32);
 	device_t *testdev = device_get(levex_id);
-	testdev->read(buffer, 0, 32);
+	testdev->read(buffer, 0, 32, testdev);
 	kprintf("%s\n", buffer);
 	_kill();
 }
@@ -228,7 +228,6 @@ void kernel_main()
 	panic("Reached end of main(), but tasking was not started.");
 	for(;;);
 }
-
 /* This function is ought to setup peripherials and such,
  * while also starting somekind of /bin/sh
  */
@@ -246,7 +245,7 @@ void late_init()
 	pid = START("testdev", create_test_device);
 	pid = START("elf_init", elf_init);
 	pid = START("rtc_init", rtc_init);
-	pid = START("ata_init", ata_init);
+	START_AND_WAIT("ata_init", ata_init);
 	pid = START("fdc_init", fdc_init);
 
 	/* We now wait till all the late_inits have finished */
@@ -437,15 +436,33 @@ prompt:
 					prompt_size = strlen(username) + strlen(hostname) + 4 + strlen(wd);
 				}
 			}
+			if(strcmp(buffer, "devinfo") == 0)
+			{
+				device_print_out();
+			}
 			if(strcmp(buffer, "fl") == 0)
 			{
-				device_t *dev = device_get_by_id(19);
+				if(!n || n == 1)
+				{
+					kprintf("FATAL: No id parameter, select root with devinfo\n");
+					goto prompt;
+				}
+				char *arg = (char *)(buffer + strlen(buffer) + 1);
+				int devid = 0;
+				atoi(arg, &devid);
+				kprintf("arg: %d\n", devid);
+				device_t *dev = device_get(devid);
+				if(!dev) {
+					kprintf("Unable to locate medium!\n");
+					goto prompt;
+				}
 				if(device_try_to_mount(dev, "/")) {
 					kprintf("Mounted / on %s (%d) with %s\n", dev->name, dev->unique_id, dev->fs->name);
 					root_mounted = 1;
 					wd = (char *)malloc(512);
 					memcpy(wd, "/", 2);
 					prompt_size = strlen(username) + strlen(hostname) + 4 + strlen(wd);
+					//device_try_to_mount(device_get_by_id(32), "/mnt/");
 					START_AND_WAIT("proc_init", proc_init);
 				}
 				else kprintf("Unable to mount / on %s (%d)!\n", dev->name, dev->unique_id);
@@ -459,7 +476,7 @@ prompt:
 				memset(write_buf, 0, 512);
 				write_buf[0] = 0x37;
 				write_buf[1] = 0x13;
-				dev->write(write_buf, 0, 1);
+				dev->write(write_buf, 0, 1, dev);
 				kprintf("Wrote 0x1337 to first two bytes of the floppy.\n");
 			}
 			if(strcmp(buffer, "lev") == 0)

@@ -13,6 +13,17 @@ size_t strlen(const string str)
 	return i;
 }
 
+void atoi(char *str, int* a)
+{
+	int k = 0;
+	while(*str)
+	{
+		k = (k<<3)+(k<<1)+(*str)-'0';
+		str++;
+	}
+	*a = k;
+}
+
 size_t strcrl(string str, const char what, const char with)
 {
 	size_t i = 0;

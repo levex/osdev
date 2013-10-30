@@ -18,10 +18,12 @@ typedef struct __device_t {
 	uint32_t unique_id;
 	device_type dev_type;
 	struct __fs_t *fs;
-	uint8_t (*read)(uint8_t* buffer, uint32_t offset , uint32_t len);
-	uint8_t (*write)(uint8_t *buffer, uint32_t offset, uint32_t len);
+	uint8_t (*read)(uint8_t* buffer, uint32_t offset , uint32_t len, void* dev);
+	uint8_t (*write)(uint8_t *buffer, uint32_t offset, uint32_t len, void* dev);
+	void *priv;
 } device_t;
 
+extern void device_print_out();
 
 extern void device_init();
 extern int device_add(device_t* dev);

@@ -72,6 +72,10 @@ enum KEYCODE {
 	M_PRESSED = 0x32,
 	M_RELEASED = 0xB2,
 
+	ZERO_PRESSED = 0x29,
+	ONE_PRESSED = 0x2,
+	NINE_PRESSED = 0xA,
+
 	POINT_PRESSED = 0x34,
 	POINT_RELEASED = 0xB4,
 
@@ -133,6 +137,7 @@ out:
 static char* _qwertzuiop = "qwertzuiop"; // 0x10-0x1c
 static char* _asdfghjkl = "asdfghjkl";
 static char* _yxcvbnm = "yxcvbnm";
+static char* _num = "123456789";
 uint8_t keyboard_to_ascii(uint8_t key)
 {
 	//kprintf("key=0x%x\n", key);
@@ -141,6 +146,9 @@ uint8_t keyboard_to_ascii(uint8_t key)
 	if(key == 0xE) return '\r';
 	if(key == POINT_RELEASED) return '.';
 	if(key == SLASH_RELEASED) return '/';
+	if(key == ZERO_PRESSED) return '0';
+	if(key >= ONE_PRESSED && key <= NINE_PRESSED)
+		return _num[key - ONE_PRESSED];
 	if(key >= 0x10 && key <= 0x1C)
 	{
 		return _qwertzuiop[key - 0x10];

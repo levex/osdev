@@ -7,6 +7,7 @@
 #include "../include/pit.h"
 #include "../include/device.h"
 #include "../include/memory.h"
+#include "../include/levos.h"
 
 #include <stdint.h>
 
@@ -281,7 +282,7 @@ uint8_t* flpy_read_lba(int lba)
 
 }
 
-uint8_t flpy_read(uint8_t* buffer, uint32_t lba, uint32_t sectors)
+uint8_t flpy_read(uint8_t* buffer, uint32_t lba, uint32_t sectors, device_t *dev UNUSED)
 {
 	if(!sectors) return 1;
 	uint32_t sectors_read = 0;
@@ -336,7 +337,7 @@ uint8_t flpy_write_lba(uint8_t *buf, uint32_t lba)
 
 }
 
-uint8_t flpy_write(uint8_t *buffer, uint32_t lba, uint32_t sectors)
+uint8_t flpy_write(uint8_t *buffer, uint32_t lba, uint32_t sectors, device_t *dev UNUSED)
 {
 	if(!sectors) return 0;
 	uint32_t sectors_wrote = 0;

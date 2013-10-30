@@ -7,11 +7,12 @@ CFLAGS=-std=gnu99 -ffreestanding -O2 -Wall -Wextra
 
 mount:
 	echo "Mounting fda.img as /mnt/floppy..."
+	sudo mount -o loop hda.img /mnt/hda
 	sudo mount -o loop fda.img /mnt/floppy
 	echo "Done."
 
 start:
-	qemu -kernel levos.bin -fda fda.img -monitor /dev/stdout
+	qemu -kernel levos.bin -fda fda.img -hda hda.img -monitor /dev/stdout
 	reset
 
 assembly:

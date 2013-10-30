@@ -21,11 +21,22 @@ void device_init()
 	_kill();
 }
 
+void device_print_out()
+{
+	for(int i = 0; i < lastid; i++)
+	{
+		//if(!devices[lastid]) return;
+		kprintf("id: %d, unique: %d, %s, %s\n", i, devices[i].unique_id,
+				devices[i].dev_type == DEVICE_CHAR ?"CHAR":"BLOCK", devices[i].name);
+	}
+}
+
 int device_add(device_t* dev)
 {
-	devices[++lastid] = *dev;
+	devices[lastid] = *dev;
 	mprint("Registered Device %s (%d) as Device#%d\n", dev->name, dev->unique_id, lastid);
-	return lastid;
+	lastid++;
+	return lastid-1;
 }
 
 device_t *device_get_by_id(uint32_t id)

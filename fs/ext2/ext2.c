@@ -16,7 +16,7 @@ void ext2_read_block(uint8_t *buf, uint32_t block, device_t *dev, ext2_priv_data
 {
 	uint32_t sectors_per_block = priv->sectors_per_block;
 	if(!sectors_per_block) sectors_per_block = 1;
-	dev->read(buf, block*sectors_per_block, sectors_per_block);
+	dev->read(buf, block*sectors_per_block, sectors_per_block, dev);
 
 }
 void ext2_read_inode(inode_t *inode_buf, uint32_t inode, device_t *dev, ext2_priv_data *priv)
@@ -212,11 +212,11 @@ uint8_t ext2_probe(device_t *dev)
 		return 0;
 	}
 	uint8_t *buf = (uint8_t *)malloc(512);
-	dev->read(buf, 2, 1);
+	dev->read(buf, 2, 1, dev);
 	superblock_t *sb = (superblock_t *)buf;
 	if(sb->ext2_sig != EXT2_SIGNATURE)
 	{
-		kprintf("Invalid EXT2 signature!\n");
+		kprintf("Invalid EXT2 signature, have: 0x%x!\n", sb->ext2_sig);
 		return 0;
 	}
 	mprint("Valid EXT2 signature!\n");
