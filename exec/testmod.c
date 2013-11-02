@@ -1,16 +1,16 @@
 #include "../include/module.h"
 #include "../include/display.h"
 
-MODULE("TEST");
+MODULE_NAME("TEST");
 
 void mymod_init()
 {
-	kprintf("Look at me loading modules!\n");
+	__test();
 }
 
 void mymod_exit()
 {
-	kprintf("Au revoir!\n");
+	return;
 }
 
 

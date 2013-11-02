@@ -16,6 +16,9 @@ void ext2_read_block(uint8_t *buf, uint32_t block, device_t *dev, ext2_priv_data
 {
 	uint32_t sectors_per_block = priv->sectors_per_block;
 	if(!sectors_per_block) sectors_per_block = 1;
+	/*mprint("we want to read block %d which is sectors [%d; %d]\n",
+		block, block*sectors_per_block , block*sectors_per_block + sectors_per_block);*/
+	//kprintf("  %d", block);
 	dev->read(buf, block*sectors_per_block, sectors_per_block, dev);
 
 }
@@ -25,14 +28,17 @@ void ext2_read_inode(inode_t *inode_buf, uint32_t inode, device_t *dev, ext2_pri
 	uint32_t i = 0;
 	/* Now we have which BG the inode is in, load that desc */
 	if(!block_buf) block_buf = (uint8_t *)malloc(priv->blocksize);
-	ext2_read_block(block_buf, priv->sb.superblock_id + 1, dev, priv);
+	ext2_read_block(block_buf, priv->first_bgd, dev, priv);
 	block_group_desc_t *bgd = (block_group_desc_t*)block_buf;
+	mprint("We seek BG %d\n", bg);
 	/* Seek to the BG's desc */
 	for(i = 0; i < bg; i++)
 		bgd++;
 	/* Find the index and seek to the inode */
 	uint32_t index = (inode - 1) % priv->sb.inodes_in_blockgroup;
+	mprint("Index of our inode is %d\n", index);
 	uint32_t block = (index * sizeof(inode_t))/ priv->blocksize;
+	mprint("Relative: %d, Absolute: %d\n", block, bgd->block_of_inode_table + block);
 	ext2_read_block(block_buf, bgd->block_of_inode_table + block, dev, priv);
 	inode_t* _inode = (inode_t *)block_buf;
 	index = index % priv->inodes_per_block;
@@ -74,7 +80,7 @@ uint8_t ext2_read_root_directory(char *filename, device_t *dev, ext2_priv_data *
 	ext2_read_inode(inode, 2, dev, priv);
 	if((inode->type & 0xF000) != INODE_TYPE_DIRECTORY)
 	{
-		mprint("FATAL: Root directory is not a directory!\n");
+		kprintf("FATAL: Root directory is not a directory!\n");
 		return 0;
 	}
 	/* We have found the directory!
@@ -156,6 +162,28 @@ void ext2_list_directory(char *dd, char *buffer, device_t *dev, ext2_priv_data *
 		ext2_read_directory(0, (ext2_dir *)root_buf, dev, priv);
 	}
 }
+
+uint8_t ext2_read_singly_linked(uint32_t blockid, uint8_t *buf, device_t *dev, ext2_priv_data *priv)
+{
+	uint32_t blockadded = 0;
+	uint32_t maxblocks = ((priv->blocksize) / (sizeof(uint32_t)));
+	/* A singly linked block is essentially an array of
+	 * uint32_t's storing the block's id which points to data
+	 */
+	 /* Read the block into root_buf */
+	 ext2_read_block(root_buf, blockid, dev, priv);
+	 /* Loop through the block id's reading them into the appropriate buffer */
+	 uint32_t *block = (uint32_t *)root_buf;
+	 for(int i =0;i < maxblocks; i++)
+	 {
+	 	/* If it is zero, we have finished loading. */
+	 	if(block[i] == 0) break;
+	 	/* Else, read the block into the buffer */
+	 	ext2_read_block(buf + i * priv->blocksize, block[i], dev, priv);
+	 }
+	 return 1;
+}
+
 static inode_t *minode = 0;
 uint8_t ext2_read_file(char *fn, char *buffer, device_t *dev, ext2_priv_data *priv)
 {
@@ -180,7 +208,11 @@ uint8_t ext2_read_file(char *fn, char *buffer, device_t *dev, ext2_priv_data *pr
 		memcpy(buffer + i*(priv->blocksize), root_buf, priv->blocksize);
 		//kprintf("%c%c%c\n", *(uint8_t*)(buffer + 1),*(uint8_t*)(buffer + 2), *(uint8_t*)(buffer + 3));
 	}
-	mprint("Read all 12 DBP(s)! *BUG*\n");
+	if(minode->singly_block) {
+		//kprintf("Block of singly: %d\n", minode->singly_block);
+		ext2_read_singly_linked(minode->singly_block, buffer + 12*(priv->blocksize), dev, priv);
+	}
+	//mprint("Read all 12 DBP(s)! *BUG*\n");
 	return 1;
 }
 
@@ -211,8 +243,8 @@ uint8_t ext2_probe(device_t *dev)
 		kprintf("Device has no read, skipped.\n");
 		return 0;
 	}
-	uint8_t *buf = (uint8_t *)malloc(512);
-	dev->read(buf, 2, 1, dev);
+	uint8_t *buf = (uint8_t *)malloc(1024);
+	dev->read(buf, 2, 2, dev);
 	superblock_t *sb = (superblock_t *)buf;
 	if(sb->ext2_sig != EXT2_SIGNATURE)
 	{
@@ -240,9 +272,7 @@ uint8_t ext2_probe(device_t *dev)
 	 * The BGDT is located directly after the SB, so obtain the
 	 * block of the SB first. This is located in the SB.
 	 */
-	uint32_t block_bgdt = sb->superblock_id + 1;
-	uint8_t *buffer = (uint8_t *)malloc(blocksize);
-	ext2_read_block(buffer, block_bgdt, dev, priv);
+	uint32_t block_bgdt = sb->superblock_id + (sizeof(superblock_t) / blocksize);
 	priv->first_bgd = block_bgdt;
 	fs->name = "EXT2";
 	fs->probe = (uint8_t(*)(device_t*)) ext2_probe;
@@ -254,7 +284,7 @@ uint8_t ext2_probe(device_t *dev)
 	dev->fs = fs;
 	mprint("Device %s (%d) is with EXT2 filesystem. Probe successful.\n", dev->name, dev->unique_id);
 	free(buf);
-	free(buffer);
+	//free(buffer);
 	return 1;
 }
 uint8_t ext2_mount(device_t *dev, void *privd)

@@ -2,6 +2,7 @@
 #include "../include/hal.h"
 #include "../include/display.h"
 #include "../include/pic.h"
+#include "../include/tasking.h"
 #include "../include/x86/idt.h"
 
 #include <stdint.h>

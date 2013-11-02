@@ -33,6 +33,7 @@ typedef struct {
 	uint32_t major_version;
 	uint16_t uuid;
 	uint16_t gid;
+	uint8_t unused[940];
 } __attribute__((packed)) superblock_t;
 
 typedef struct {

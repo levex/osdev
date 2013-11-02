@@ -27,7 +27,9 @@
 #include "include/ata.h"
 #include "include/vfs.h"
 #include "include/proc.h"
+#include "include/devfs.h"
 #include "include/loader.h"
+#include "include/module.h"
 #include "include/elf.h"
 
 static DISPLAY* disp = 0;
@@ -228,6 +230,11 @@ void kernel_main()
 	panic("Reached end of main(), but tasking was not started.");
 	for(;;);
 }
+
+void __test()
+{
+	kprintf("Module system test.\n");
+}
 /* This function is ought to setup peripherials and such,
  * while also starting somekind of /bin/sh
  */
@@ -245,11 +252,14 @@ void late_init()
 	pid = START("testdev", create_test_device);
 	pid = START("elf_init", elf_init);
 	pid = START("rtc_init", rtc_init);
+	START_AND_WAIT("fdc_init", fdc_init);
 	START_AND_WAIT("ata_init", ata_init);
-	pid = START("fdc_init", fdc_init);
+	pid = START("mod_init", module_init);
+
 
 	/* We now wait till all the late_inits have finished */
 	while(is_pid_running(pid))schedule_noirq();
+	EXPORT_SYMBOL(__test);
 	/* Once they are done, pass control to the kernel terminal,
 	 * so that it will (eventually) start a /init or /bin/sh
 	 */
@@ -274,7 +284,7 @@ void _test()
 {
 	buffer = (char*)malloc(256);
 	ls_buffer = (char *)malloc(1024);
-	file_buf = (uint8_t *)malloc(65536);
+	file_buf = (uint8_t *)malloc(524288);
 	if(!file_buf) panic("Shit just got serious. This should absolutely never happen!\n");
 	uint8_t *write_buf = (uint8_t *)malloc(512);
 	char* prompt = "(kernel) $ ";
@@ -310,24 +320,29 @@ prompt:
 				kprintf("LevOS4.0\nThis is the kernel terminal.\nDon't do anything stupid.\n");
 				kprintf("Commands available: help; reboot; read; malloc; ps; fl; cd; ls\n"
 						"clear; reset; time; v; kill\n");
+				goto prompt;
 			}
 			if(strcmp(buffer, "reboot") == 0)
 			{
 				outportb(0x64, 0xFE);
+				goto prompt;
 			}
 			if(strcmp(buffer, "read") == 0)
 			{
 				START_AND_WAIT("read", __read);
+				goto prompt;
 			}
 			if(strcmp(buffer, "malloc") == 0)
 			{
 				uint8_t *mem = (uint8_t *)malloc(1337);
 				free(mem);
 				mem = (uint8_t *)malloc(1337);
+				goto prompt;
 			}
 			if(strcmp(buffer, "mount") == 0)
 			{
 				list_mount();
+				goto prompt;
 				//kprintf("wd=0x%x", wd);
 			}
 			if(strcmp(buffer, "uname") == 0)
@@ -337,6 +352,7 @@ prompt:
 				vfs_read("/proc/os/full", file_buf);
 				kprintf("%s\n", file_buf);
 				memset(file_buf, 0, 512);
+				goto prompt;
 			}
 			if(strcmp(buffer, "cat") == 0)
 			{
@@ -351,35 +367,33 @@ prompt:
 				{
 					kprintf("%s\n", file_buf);
 				} else kprintf("File not found.\n");
+				goto prompt;
 			}
 			if(strcmp(buffer, "ps") == 0)
 			{
 				START_AND_WAIT("ps", __ps);
+				goto prompt;
 			}
 			if(strcmp(buffer, "time") == 0)
 			{
 				START_AND_WAIT("time", rtc_print_time_as_proc);
+				goto prompt;
 			}
 			if(strcmp(buffer, "clear") == 0 || strcmp(buffer, "reset") == 0)
 			{
 				disp->clear();
+				goto prompt;
 			}
 			if(strcmp(buffer, "v") == 0)
 			{
-				char* _t = "/home/levex/text/levex.txt";
-				size_t n = strsplit(_t, '/');
-				_t++;
-				while(n--)
-				{
-					uint32_t s = strlen(_t);
-					kprintf("%d (%d): %s\n", n, s, _t);
-					_t += s + 1;
-				}
+				module_call_func("__test");
+				goto prompt;
 			}
 			if(strcmp(buffer, "kill") == 0)
 			{
 				kill(cu_pid);
 				while(is_pid_running(cu_pid)) {schedule_noirq(); continue;}
+				goto prompt;
 			}
 			if(strcmp(buffer, "ls") == 0)
 			{
@@ -393,10 +407,12 @@ prompt:
 					kprintf("Error.\n");
 					goto prompt;
 				}
+				goto prompt;
 			}
 			if(strcmp(buffer, "mem") == 0)
 			{
 				mm_print_out();
+				goto prompt;
 			}
 			if(strcmp(buffer, "cd") == 0)
 			{
@@ -422,6 +438,7 @@ prompt:
 						prompt_size = strlen(username) + strlen(hostname) + 4 + strlen(wd);
 						goto prompt;
 					}
+
 				}
 				if(vfs_exist_in_dir(wd, arg))
 				{
@@ -435,10 +452,12 @@ prompt:
 					free(_w);
 					prompt_size = strlen(username) + strlen(hostname) + 4 + strlen(wd);
 				}
+				goto prompt;
 			}
 			if(strcmp(buffer, "devinfo") == 0)
 			{
 				device_print_out();
+				goto prompt;
 			}
 			if(strcmp(buffer, "fl") == 0)
 			{
@@ -462,10 +481,13 @@ prompt:
 					wd = (char *)malloc(512);
 					memcpy(wd, "/", 2);
 					prompt_size = strlen(username) + strlen(hostname) + 4 + strlen(wd);
-					//device_try_to_mount(device_get_by_id(32), "/mnt/");
+					//goto prompt;
+					device_try_to_mount(device_get_by_id(19), "/mnt/");
 					START_AND_WAIT("proc_init", proc_init);
+					START_AND_WAIT("devfs_init", devfs_init);
 				}
 				else kprintf("Unable to mount / on %s (%d)!\n", dev->name, dev->unique_id);
+				goto prompt;
 
 			}
 			if(strcmp(buffer, "write") == 0)
@@ -478,6 +500,7 @@ prompt:
 				write_buf[1] = 0x13;
 				dev->write(write_buf, 0, 1, dev);
 				kprintf("Wrote 0x1337 to first two bytes of the floppy.\n");
+				goto prompt;
 			}
 			if(strcmp(buffer, "lev") == 0)
 			{
@@ -489,6 +512,16 @@ prompt:
 					}
 				} else {
 					kprintf("Unable to read /bin/hw\n");
+				}
+				goto prompt;
+			}
+			if(!*buffer) goto prompt;
+			if(vfs_read(buffer, file_buf))
+			{
+				int pid = 0;
+				if(pid = exec_start(file_buf))
+				{
+					while(is_pid_running(pid)) schedule_noirq();
 				}
 			}
 			goto prompt;

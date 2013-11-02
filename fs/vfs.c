@@ -10,6 +10,7 @@
 #include "../include/memory.h"
 #include "../include/string.h"
 #include "../include/ext2.h"
+#include "../include/devfs.h"
 
 MODULE("VFS");
 #define MAX_MOUNTS 16
@@ -55,8 +56,9 @@ uint8_t device_try_to_mount(device_t *dev, char *loc)
 			m->dev = dev;
 			last_mount_id++;
 			mount_points[last_mount_id - 1] = m;
+			return 1;
 		}
-		return 1;
+		return 0;
 	}
 	if(procfs_probe(dev))
 	{
@@ -67,8 +69,22 @@ uint8_t device_try_to_mount(device_t *dev, char *loc)
 			m->dev = dev;
 			last_mount_id++;
 			mount_points[last_mount_id - 1] = m;
+			return 1;
 		}
-		return 1;
+		return 0;
+	}
+	if(devfs_probe(dev))
+	{
+		if(devfs_mount(dev, dev->fs->priv_data))
+		{
+			mount_info_t *m = (mount_info_t *)malloc(sizeof(mount_info_t));
+			m->loc = loc;
+			m->dev = dev;
+			last_mount_id++;
+			mount_points[last_mount_id - 1] = m;
+			return 1;
+		}
+		return 0;
 	}
 	return 0;
 }
