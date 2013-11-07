@@ -12,6 +12,7 @@ typedef struct __fs_t {
 	uint8_t (*read)(char *, char *, struct __device_t *, void *);
 	uint8_t (*read_dir)(char *, char *, struct __device_t *, void *);
 	uint8_t (*touch)(char *fn, struct __device_t *, void *);
+	uint8_t (*writefile)(char *fn, char *buf, uint32_t len, struct __device_t *, void *);
 	uint8_t (*exist)(char *filename, struct __device_t *, void *);
 	uint8_t (*mount)(struct __device_t *, void *);
 	uint8_t *priv_data;

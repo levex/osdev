@@ -340,12 +340,17 @@ uint8_t flpy_write_lba(uint8_t *buf, uint32_t lba)
 uint8_t flpy_write(uint8_t *buffer, uint32_t lba, uint32_t sectors, device_t *dev UNUSED)
 {
 	if(!sectors) return 0;
-	uint32_t sectors_wrote = 0;
-	while(sectors_wrote != sectors)
+	//uint32_t sectors_wrote = 0;
+	/*while(sectors_wrote != sectors)
 	{
 		if(!flpy_write_lba(buffer + sectors_wrote * 512, lba + sectors_wrote)) return 1;
 		sectors_wrote++;
+	}*/
+	for(int i =0;i<sectors; i++)
+	{
+		flpy_write_lba(buffer + i*512, lba + i);
 	}
+	//kprintf("wrote %d sectors from %d to %d\n", sectors, lba, lba + sectors);
 	return 1;
 }
 

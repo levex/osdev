@@ -37,13 +37,13 @@ void syscall()
 		case 4: /* syscall 4: write() eax=4 ebx=file ecx=buffer edx=size RET: ecx=size*/
 			switch(ebx)
 			{
-				case 0:
+				case 0: /* STDOUT */
 					kprintf("%s", ecx);
 					break;
 			}
 			break;
 		case 5: /* syscall 5: open() eax=5 ebx=file ecx=flags  edx=mode RET: eax=file */
-			asm volatile("movl $1, %eax");
+			asm volatile("movl $0, %eax");
 			break;
 		case 0x14: /* syscall 0x14: getpid() eax=0x14 RET: eax=pid */
 			asm volatile("movl %%ebx, %%eax": :"b"(p_pid()));

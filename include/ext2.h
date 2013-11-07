@@ -57,7 +57,7 @@ typedef struct {
 typedef struct {
 	uint16_t type;
 	uint16_t uid;
-	uint32_t low_size;
+	uint32_t size;
 	uint32_t last_access;
 	uint32_t create_time;
 	uint32_t last_modif;

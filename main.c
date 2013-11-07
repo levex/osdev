@@ -492,14 +492,21 @@ prompt:
 			}
 			if(strcmp(buffer, "write") == 0)
 			{
-				device_t *dev = device_get_by_id(19);
-				if(!dev)
+				if(!n || n == 1)
+				{
+					kprintf("FATAL: No argument supplied.\n");
 					goto prompt;
-				memset(write_buf, 0, 512);
-				write_buf[0] = 0x37;
-				write_buf[1] = 0x13;
-				dev->write(write_buf, 0, 1, dev);
-				kprintf("Wrote 0x1337 to first two bytes of the floppy.\n");
+				}
+				device_t *dev = device_get_by_id(19);
+				char *arg = (char *)(buffer + strlen(buffer) + 1);
+				char *f = (char *)malloc(strlen(wd) + strlen(arg) + 1);
+				memcpy(f, wd, strlen(wd));
+				memcpy(f + strlen(wd), arg, strlen(arg) + 1);
+				f[strlen(wd) + strlen(arg) + 1] = 0;
+				kprintf("Writing 'levex is epic' to %s\n", f);
+				char *my_buf = "levex is epic";
+				dev->fs->writefile(f, my_buf, strlen(my_buf) + 1,  dev, dev->fs->priv_data);
+				free(f);
 				goto prompt;
 			}
 			if(strcmp(buffer, "lev") == 0)
@@ -513,6 +520,24 @@ prompt:
 				} else {
 					kprintf("Unable to read /bin/hw\n");
 				}
+				goto prompt;
+			}
+			if(strcmp(buffer, "touch") == 0)
+			{
+				if(!n || n == 1)
+				{
+					kprintf("FATAL: No argument supplied.\n");
+					goto prompt;
+				}
+				device_t *dev = device_get_by_id(19);
+				char *arg = (char *)(buffer + strlen(buffer) + 1);
+				char *f = (char *)malloc(strlen(wd) + strlen(arg) + 1);
+				memcpy(f, wd, strlen(wd));
+				memcpy(f + strlen(wd), arg, strlen(arg) + 1);
+				f[strlen(wd) + strlen(arg) + 1] = 0;
+				kprintf("Touching %s\n", f);
+				dev->fs->touch(f, dev, dev->fs->priv_data);
+				free(f);
 				goto prompt;
 			}
 			if(!*buffer) goto prompt;
