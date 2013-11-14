@@ -222,7 +222,7 @@ void ext2_list_directory(char *dd, char *buffer, device_t *dev, ext2_priv_data *
 		ext2_read_directory(0, (ext2_dir *)root_buf, dev, priv);
 	}
 }
-
+#define SIZE_OF_SINGLY (priv->blocksize * priv->blocksize / 4)
 uint8_t ext2_read_singly_linked(uint32_t blockid, uint8_t *buf, device_t *dev, ext2_priv_data *priv)
 {
 	uint32_t blockadded = 0;
@@ -240,6 +240,28 @@ uint8_t ext2_read_singly_linked(uint32_t blockid, uint8_t *buf, device_t *dev, e
 	 	if(block[i] == 0) break;
 	 	/* Else, read the block into the buffer */
 	 	ext2_read_block(buf + i * priv->blocksize, block[i], dev, priv);
+	 }
+	 return 1;
+}
+
+uint8_t ext2_read_doubly_linked(uint32_t blockid, uint8_t *buf, device_t *dev, ext2_priv_data *priv)
+{
+	uint32_t blockadded = 0;
+	uint32_t maxblocks = ((priv->blocksize) / (sizeof(uint32_t)));
+	/* A singly linked block is essentially an array of
+	 * uint32_t's storing the block's id which points to data
+	 */
+	 /* Read the block into root_buf */
+	 ext2_read_block(block_buf, blockid, dev, priv);
+	 /* Loop through the block id's reading them into the appropriate buffer */
+	 uint32_t *block = (uint32_t *)block_buf;
+	 uint32_t s = SIZE_OF_SINGLY;
+	 for(int i =0;i < maxblocks; i++)
+	 {
+	 	/* If it is zero, we have finished loading. */
+	 	if(block[i] == 0) break;
+	 	/* Else, read the block into the buffer */
+	 	ext2_read_singly_linked(block[i], buf + i * s , dev, priv);
 	 }
 	 return 1;
 }
@@ -271,6 +293,11 @@ uint8_t ext2_read_file(char *fn, char *buffer, device_t *dev, ext2_priv_data *pr
 	if(minode->singly_block) {
 		//kprintf("Block of singly: %d\n", minode->singly_block);
 		ext2_read_singly_linked(minode->singly_block, buffer + 12*(priv->blocksize), dev, priv);
+	}
+	if(minode->doubly_block) {
+		uint32_t s = SIZE_OF_SINGLY + 12*priv->blocksize;
+		//kprintf("s is 0x%x (%d)\n", s, s);
+		ext2_read_doubly_linked(minode->doubly_block, buffer + s, dev, priv);
 	}
 	//mprint("Read all 12 DBP(s)! *BUG*\n");
 	return 1;

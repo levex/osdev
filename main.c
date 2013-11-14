@@ -31,6 +31,7 @@
 #include "include/loader.h"
 #include "include/module.h"
 #include "include/elf.h"
+#include "include/pci.h"
 
 static DISPLAY* disp = 0;
 
@@ -255,6 +256,7 @@ void late_init()
 	START_AND_WAIT("fdc_init", fdc_init);
 	START_AND_WAIT("ata_init", ata_init);
 	pid = START("mod_init", module_init);
+	pid = START("pci_init", pci_init);
 
 
 	/* We now wait till all the late_inits have finished */
@@ -285,7 +287,7 @@ void _test()
 	buffer = (char*)malloc(256);
 	ls_buffer = (char *)malloc(1024);
 	file_buf = (uint8_t *)malloc(524288);
-	if(!file_buf) panic("Shit just got serious. This should absolutely never happen!\n");
+	if(!file_buf) panic("Kernel terminal has no memory available!\n");
 	uint8_t *write_buf = (uint8_t *)malloc(512);
 	char* prompt = "(kernel) $ ";
 	uint8_t prompt_size = strlen(prompt);

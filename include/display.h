@@ -20,7 +20,7 @@ typedef struct {
 } DISPLAY;
 #define panic(...) {set_task(0); kprintf("***KERNEL PANIC*** in %s at line %d in function: %s\n", __FILE__, __LINE__, __func__); kprintf(__VA_ARGS__); for(;;);}
 //#define mprint(...) {kprintf("[%s]: ", __MODULE_NAME); kprintf(__VA_ARGS__);}
-#if 0
+#if 1
 	#define MODULE(name) static char* __MODULE_NAME = name;
 	#define mprint(...) __mprintf(__MODULE_NAME, __VA_ARGS__);
 #else

@@ -25,7 +25,8 @@ void gdt_init()
 	gdt_add_descriptor(0, 0);
 	gdt_add_descriptor(1, 0x00CF9A000000FFFF);
 	gdt_add_descriptor(2, 0x00CF92000000FFFF);
-	gdt_set_descriptor();
+	gdt_add_descriptor(3, 0x008FFA000000FFFF); // 16bit code pl3
+	gdt_set_descriptor(4, 0x008FF2000000FFFF); // 16bit data pl3
 	mprint("Global Descriptor Table is alive.\n");
 }
 

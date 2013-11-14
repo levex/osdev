@@ -46,6 +46,14 @@
 #define GDT_DATA_PL3 SEG_DESCTYPE(1) | SEG_PRES(1) | SEG_SAVL(0) | \
                      SEG_LONG(0)     | SEG_SIZE(1) | SEG_GRAN(1) | \
                      SEG_PRIV(3)     | SEG_DATA_RDWR
+
+#define GDT_DATA_PL3_16 SEG_DESCTYPE(1) | SEG_PRES(1) | SEG_SAVL(0) | \
+                     SEG_LONG(0)     | SEG_SIZE(0) | SEG_GRAN(1) | \
+                     SEG_PRIV(0)     | SEG_DATA_RDWR
+
+#define GDT_CODE_PL3_16 SEG_DESCTYPE(1) | SEG_PRES(1) | SEG_SAVL(0) | \
+                     SEG_LONG(0)     | SEG_SIZE(0) | SEG_GRAN(1) | \
+                     SEG_PRIV(0)     | SEG_CODE_EXRD
  
 void
 create_descriptor(uint32_t base, uint32_t limit, uint16_t flag)
@@ -76,6 +84,8 @@ main(void)
     create_descriptor(0, 0x000FFFFF, (GDT_DATA_PL0));
     create_descriptor(0, 0x000FFFFF, (GDT_CODE_PL3));
     create_descriptor(0, 0x000FFFFF, (GDT_DATA_PL3));
+    create_descriptor(0, 0x000FFFFF, (GDT_CODE_PL3_16));
+    create_descriptor(0, 0x000FFFFF, (GDT_DATA_PL3_16));
  
     return 0;
 }

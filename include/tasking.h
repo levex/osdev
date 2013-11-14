@@ -8,6 +8,8 @@
 #define PROCESS_STATE_ZOMBIE 1
 #define PROCESS_STATE_DEAD 2
 
+static uint32_t MAX_OPEN_FILES = 16;
+
 struct _process;
 
 typedef struct _process {
@@ -19,6 +21,9 @@ typedef struct _process {
 	uint32_t eip;
 	uint32_t cr3;
 	uint32_t state;
+	/* open() */
+	uint16_t num_open_files;
+	char **open_files;
 	void (*notify)(int);
 	struct _process* next;
 } PROCESS;
@@ -32,6 +37,7 @@ extern int is_tasking();
 
 extern char* p_name();
 extern int p_pid();
+extern PROCESS *p_proc();
 
 extern void send_sig(int sig);
 

@@ -66,6 +66,11 @@ int is_tasking()
 	return __enabled;
 }
 
+PROCESS *p_proc()
+{
+	return c;
+}
+
 char* p_name()
 {
 	return c->name;

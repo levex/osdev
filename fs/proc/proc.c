@@ -6,6 +6,7 @@
 #include "../../include/device.h"
 #include "../../include/memory.h"
 #include "../../include/levos.h"
+#include "../../include/pci.h"
 
 #include <stdint.h>
 
@@ -15,7 +16,7 @@ uint8_t procfs_read(char *fn, char *buffer, device_t *dev UNUSED, void* priv UNU
 {
 	if(strcmp(fn, "/os/full") == 0)
 	{
-		char *name = "LevOS levex-pc 4.0-rc0 i386";
+		char *name = "LevOS levex-pc 4.0-rc1 i386";
 		memcpy(buffer, name, strlen(name) + 1);
 		return 1; 
 	}
@@ -25,6 +26,11 @@ uint8_t procfs_read(char *fn, char *buffer, device_t *dev UNUSED, void* priv UNU
 		memcpy(buffer, name, strlen(name) + 1);
 		return 1; 
 	}
+	if(strcmp(fn, "/system/pci") == 0)
+	{
+		pci_proc_dump(buffer);
+		return 1;
+	}
 	return 0;
 }
 
@@ -33,11 +39,15 @@ uint8_t procfs_read_dir(char *dn, char *buffer UNUSED, device_t *dev UNUSED, voi
 	if(!dn)return 0;
 	if(strcmp(dn, "/") == 0)
 	{
-			kprintf(".\n..\nos\n");
+			kprintf(".\n..\nos\nsystem\n");
 	}
 	if(strcmp(dn, "/os/") == 0)
 	{
 		kprintf(".\n..\nfull\narch\n");
+	}
+	if(strcmp(dn, "/system/") == 0)
+	{
+		kprintf(".\n..\npci\n");
 	}
 	return 1;
 }
@@ -51,6 +61,10 @@ uint8_t procfs_exist(char *fn, device_t *dev UNUSED, void *priv UNUSED)
 	if(strcmp(fn, "/os/full") == 0)
 		return 1;
 	if(strcmp(fn, "/os/arch") == 0)
+		return 1;
+	if(strcmp(fn, "/system/") == 0)
+		return 1;
+	if(strcmp(fn, "/system/pci") == 0)
 		return 1;
 	return 0;
 }

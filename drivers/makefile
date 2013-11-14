@@ -6,3 +6,4 @@ all:
 	i586-elf-gcc -c fdc.c -o fdc.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
 	i586-elf-gcc -c dma.c -o dma.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
 	i586-elf-gcc -c ata.c -o ata.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
+	cd pci && $(MAKE) $(MFLAGS)
